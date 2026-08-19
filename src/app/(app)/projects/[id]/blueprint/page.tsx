@@ -58,8 +58,8 @@ function ListRow({ label, values, step, projectId }: { label: string; values: st
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-6">
-      <h2 className="mb-2 text-xl font-semibold">{title}</h2>
+    <section className="rounded-xl border border-border bg-card p-6 elevated-1">
+      <h2 className="mb-3 border-b border-border pb-3 text-xl font-semibold">{title}</h2>
       <dl>{children}</dl>
     </section>
   );
@@ -107,17 +107,20 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
   });
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8">
-      <Link href={`/projects/${id}/wizard/9`} className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-        ← Back to setup
-      </Link>
+    <div className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
+      <header>
+        <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
+          <span aria-hidden="true" className="h-px w-8 bg-border-strong" />
+          <span className="text-muted-foreground">Review before generating</span>
+        </p>
 
-      <h1 className="mt-4 text-3xl font-semibold">Your Project Blueprint</h1>
-      <p className="mt-2 max-w-2xl leading-relaxed text-muted-foreground">
-        Everything My Project Builder will work from. Check it carefully — anything marked{" "}
-        <span className="italic">{MISSING}</span> is simply left blank, never filled in with a
-        guess. Select any label to go back and change it.
-      </p>
+        <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">Your Project Blueprint</h1>
+        <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+          Everything My Project Builder will work from. Check it carefully — anything marked{" "}
+          <span className="italic">{MISSING}</span> is simply left blank, never filled in with a
+          guess. Select any label to go back and change it.
+        </p>
+      </header>
 
       {p.kind === "DEMO" ? (
         <div className="mt-6">
@@ -196,7 +199,7 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
           <Row projectId={id} step={8} label="Chapter numbering" value={f?.chapterNumbering} />
         </Section>
 
-        <section className="rounded-lg border border-border bg-card p-6">
+        <section className="rounded-xl border border-border bg-card p-6 elevated-1">
           <h2 className="mb-3 text-xl font-semibold">Proposed project structure</h2>
           {chapters.length === 0 ? (
             <p className="text-muted-foreground italic">
@@ -241,9 +244,12 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
         </div>
       )}
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-6">
         <Button asChild variant="outline">
-          <Link href={`/projects/${id}/wizard/1`}>Edit Blueprint</Link>
+          <Link href={`/projects/${id}/wizard/1`}>Edit blueprint</Link>
+        </Button>
+        <Button asChild variant="ghost">
+          <Link href={`/projects/${id}/workspace`}>Open workspace</Link>
         </Button>
       </div>
     </div>

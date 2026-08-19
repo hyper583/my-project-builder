@@ -4,72 +4,187 @@ import {
   ClipboardList,
   FileDown,
   FileSearch,
-  GraduationCap,
-  ListChecks,
   PenLine,
+  Plus,
   ShieldCheck,
   Upload,
 } from "lucide-react";
 
+import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 
 /**
  * Landing page sections.
  *
- * Section order follows the product brief. The visual treatment is deliberately
- * restrained — hierarchy comes from typography and spacing, not decoration,
- * because the product needs to read as serious academic software.
+ * Swiss Modernism supplies the structure: a twelve-column grid, mathematical
+ * spacing, hairline rules and a single accent used only to mark position.
+ * Hierarchy is carried by type size and whitespace, never by decoration —
+ * which is what keeps a serious academic product from looking like every
+ * other AI landing page.
  */
 
-function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Container({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return <div className={`mx-auto w-full max-w-6xl px-5 sm:px-8 ${className}`}>{children}</div>;
 }
 
-function SectionHeading({ eyebrow, title, lead }: { eyebrow: string; title: string; lead?: string }) {
+/** Section label: index, rule, name. The Swiss signature of the page. */
+function Eyebrow({ index, children }: { index: string; children: React.ReactNode }) {
   return (
-    <div className="max-w-2xl">
-      <p className="text-sm font-medium tracking-wide text-accent uppercase">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">{title}</h2>
-      {lead ? <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{lead}</p> : null}
-    </div>
+    <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
+      <span className="tabular text-accent">{index}</span>
+      <span aria-hidden="true" className="draw-rule h-px w-8 bg-border-strong" />
+      <span className="text-muted-foreground">{children}</span>
+    </p>
   );
 }
 
+function SectionHeading({
+  index,
+  eyebrow,
+  title,
+  lead,
+}: {
+  index: string;
+  eyebrow: string;
+  title: string;
+  lead?: string;
+}) {
+  return (
+    <Reveal className="max-w-2xl">
+      <Eyebrow index={index}>{eyebrow}</Eyebrow>
+      <h2 className="mt-5 text-3xl font-semibold sm:text-[2.6rem] sm:leading-[1.1]">{title}</h2>
+      {lead ? (
+        <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{lead}</p>
+      ) : null}
+    </Reveal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
 export function Hero() {
   return (
-    <section className="border-b border-border bg-card">
-      <Container className="py-20 sm:py-28">
-        <div className="max-w-3xl">
-          <p className="text-sm font-medium tracking-[0.2em] text-accent uppercase">
-            My Project Builder
-          </p>
-          <h1 className="mt-5 text-4xl leading-tight font-semibold sm:text-6xl">
-            Build your academic project from the ground up.
-          </h1>
-          <p className="mt-6 text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            Give us your topic, department, research details, requirements and existing
-            materials. My Project Builder turns your information into an organised, editable
-            academic project workspace.
-          </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/register">
-                Build My Project
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="#how-it-works">See How It Works</Link>
-            </Button>
+    <section className="relative overflow-hidden border-b border-border">
+      <Container className="relative py-16 sm:py-24 lg:py-28">
+        <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
+          <div className="lg:col-span-7">
+            <Reveal>
+              <Eyebrow index="01">For final year projects, theses and dissertations</Eyebrow>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <h1 className="mt-6 text-[2.6rem] leading-[1.05] font-semibold sm:text-6xl lg:text-[4.1rem]">
+                Build your academic project from the ground up.
+              </h1>
+            </Reveal>
+
+            <Reveal delay={160}>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+                Give us your topic, department, research details, requirements and existing
+                materials. My Project Builder turns your information into an organised, editable
+                academic project workspace.
+              </p>
+            </Reveal>
+
+            <Reveal delay={240}>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/register">
+                    Build My Project
+                    <ArrowRight
+                      className="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="#how-it-works">See how it works</Link>
+                </Button>
+              </div>
+            </Reveal>
+
+            <Reveal delay={320}>
+              <p className="mt-7 border-l-2 border-accent pl-4 text-sm leading-relaxed text-muted-foreground">
+                Your project is built around the information you provide — not from a topic
+                alone. Results, participants and findings are never invented.
+              </p>
+            </Reveal>
           </div>
-          <p className="mt-6 text-sm text-muted-foreground">
-            Your project is built around the information you provide — not from a topic alone.
-          </p>
+
+          {/*
+            The grid line sits on the column boundary rather than at 50% of the
+            section. Centred, it cut straight through the headline, which spans
+            seven of twelve columns.
+          */}
+          <div className="lg:col-span-5 lg:border-l lg:border-border lg:pl-10">
+            <Reveal delay={200}>
+              <StructureFigure />
+            </Reveal>
+          </div>
         </div>
       </Container>
     </section>
   );
 }
+
+/**
+ * A diagram of the chapter structure the product produces.
+ *
+ * Deliberately a diagram rather than a screenshot mock-up: it shows the shape
+ * of the output without dressing up invented content as a real project.
+ */
+function StructureFigure() {
+  const chapters = [
+    { number: "1", title: "Introduction", sections: ["Background to the Study", "Statement of the Problem", "Aim and Objectives"] },
+    { number: "2", title: "Literature Review", sections: ["Conceptual Framework", "Empirical Review"] },
+    { number: "3", title: "Research Methodology", sections: ["Research Design", "Population of the Study"] },
+  ];
+
+  return (
+    <figure className="rounded-xl border border-border bg-card p-5 elevated-2 sm:p-6">
+      <figcaption className="mb-4 flex items-center justify-between border-b border-border pb-3">
+        <span className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+          Project structure
+        </span>
+        <span className="tabular text-xs text-subtle-foreground">Editable</span>
+      </figcaption>
+
+      <ol className="space-y-4">
+        {chapters.map((chapter) => (
+          <li key={chapter.number}>
+            <p className="flex items-baseline gap-2.5 text-sm font-semibold">
+              <span className="tabular font-serif text-base text-accent">{chapter.number}</span>
+              {chapter.title}
+            </p>
+            <ul className="mt-1.5 space-y-1 border-l border-border pl-4">
+              {chapter.sections.map((section, index) => (
+                <li key={section} className="flex items-baseline gap-2.5 text-sm">
+                  <span className="tabular text-xs text-subtle-foreground">
+                    {chapter.number}.{index + 1}
+                  </span>
+                  <span className="text-muted-foreground">{section}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ol>
+
+      <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
+        Choose three, four, five or a custom number of chapters. Rename, reorder and delete
+        sections to match your department.
+      </p>
+    </figure>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 
 const STEPS = [
   {
@@ -101,27 +216,34 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section id="how-it-works" className="scroll-mt-20 border-b border-border">
-      <Container className="py-20 sm:py-24">
+      <Container className="py-20 sm:py-28">
         <SectionHeading
+          index="02"
           eyebrow="How it works"
           title="Six steps, in your order of work"
           lead="Nothing is generated until you have reviewed and approved the blueprint."
         />
-        <ol className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+
+        <ol className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="border-t border-border pt-5">
-              <span className="font-serif text-2xl text-accent" aria-hidden="true">
+            <Reveal as="li" key={step.title} delay={i * 60} className="border-t border-border pt-5">
+              <span
+                className="tabular font-serif text-3xl leading-none text-accent"
+                aria-hidden="true"
+              >
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
+              <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
               <p className="mt-2 leading-relaxed text-muted-foreground">{step.body}</p>
-            </li>
+            </Reveal>
           ))}
         </ol>
       </Container>
     </section>
   );
 }
+
+/* ------------------------------------------------------------------ */
 
 const CAPABILITIES = [
   {
@@ -158,26 +280,37 @@ const CAPABILITIES = [
 
 export function Capabilities() {
   return (
-    <section id="capabilities" className="scroll-mt-20 border-b border-border bg-card">
-      <Container className="py-20 sm:py-24">
+    <section id="capabilities" className="scroll-mt-20 border-b border-border bg-surface">
+      <Container className="py-20 sm:py-28">
         <SectionHeading
+          index="03"
           eyebrow="What you get"
           title="A workspace, not a one-shot generator"
           lead="The project stays yours to shape at every stage."
         />
-        <div className="mt-12 grid gap-8 sm:grid-cols-2">
-          {CAPABILITIES.map(({ icon: Icon, title, body }) => (
-            <article key={title} className="rounded-lg border border-border bg-background p-6">
-              <Icon className="size-6 text-primary" aria-hidden="true" />
-              <h3 className="mt-4 text-xl font-semibold">{title}</h3>
-              <p className="mt-2 leading-relaxed text-muted-foreground">{body}</p>
-            </article>
+
+        <div className="mt-14 grid gap-5 sm:grid-cols-2">
+          {CAPABILITIES.map(({ icon: Icon, title, body }, i) => (
+            <Reveal as="article" key={title} delay={i * 60}>
+              <div className="group h-full rounded-xl border border-border bg-card p-6 transition-[box-shadow,border-color,translate] duration-200 elevated-1 hover:-translate-y-0.5 hover:border-border-strong hover:elevated-3">
+              <span className="flex size-10 items-center justify-center rounded-lg bg-muted transition-colors duration-200 group-hover:bg-accent-subtle">
+                <Icon
+                  className="size-5 text-primary transition-colors duration-200 group-hover:text-accent"
+                  aria-hidden="true"
+                />
+              </span>
+                <h3 className="mt-4 text-xl font-semibold">{title}</h3>
+                <p className="mt-2 leading-relaxed text-muted-foreground">{body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </Container>
     </section>
   );
 }
+
+/* ------------------------------------------------------------------ */
 
 const FEATURES = [
   "Institution, faculty, department and programme presets — with custom values always allowed",
@@ -194,12 +327,27 @@ const FEATURES = [
 export function Features() {
   return (
     <section className="border-b border-border">
-      <Container className="py-20 sm:py-24">
-        <SectionHeading eyebrow="Features" title="Built for how projects are actually supervised" />
-        <ul className="mt-10 grid gap-x-10 gap-y-4 sm:grid-cols-2">
-          {FEATURES.map((feature) => (
-            <li key={feature} className="flex gap-3">
-              <ListChecks className="mt-1 size-5 shrink-0 text-accent" aria-hidden="true" />
+      <Container className="py-20 sm:py-28">
+        <SectionHeading
+          index="04"
+          eyebrow="Features"
+          title="Built for how projects are actually supervised"
+        />
+
+        <ul className="mt-12 grid border-t border-border sm:grid-cols-2">
+          {FEATURES.map((feature, index) => (
+            <li
+              key={feature}
+              className={`flex gap-4 border-b border-border py-4 ${
+                index % 2 === 0 ? "sm:pr-8" : "sm:border-l sm:pl-8"
+              }`}
+            >
+              <span
+                className="tabular mt-0.5 shrink-0 text-xs text-subtle-foreground"
+                aria-hidden="true"
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
               <span className="leading-relaxed text-muted-foreground">{feature}</span>
             </li>
           ))}
@@ -208,6 +356,8 @@ export function Features() {
     </section>
   );
 }
+
+/* ------------------------------------------------------------------ */
 
 const FAQS = [
   {
@@ -238,22 +388,21 @@ const FAQS = [
 
 export function Faq() {
   return (
-    <section id="faq" className="scroll-mt-20 border-b border-border bg-card">
-      <Container className="py-20 sm:py-24">
-        <SectionHeading eyebrow="FAQ" title="Questions students ask first" />
-        <div className="mt-10 max-w-3xl divide-y divide-border border-y border-border">
+    <section id="faq" className="scroll-mt-20 border-b border-border bg-surface">
+      <Container className="py-20 sm:py-28">
+        <SectionHeading index="05" eyebrow="FAQ" title="Questions students ask first" />
+
+        <div className="mt-12 max-w-3xl border-t border-border">
           {FAQS.map(({ q, a }) => (
-            <details key={q} className="group py-5">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium">
+            <details key={q} className="group border-b border-border">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-lg font-medium transition-colors duration-150 hover:text-accent">
                 {q}
-                <span
-                  className="text-accent transition-transform duration-200 group-open:rotate-45"
+                <Plus
+                  className="size-4 shrink-0 text-accent transition-transform duration-200 group-open:rotate-45"
                   aria-hidden="true"
-                >
-                  +
-                </span>
+                />
               </summary>
-              <p className="mt-3 leading-relaxed text-muted-foreground">{a}</p>
+              <p className="pr-10 pb-5 leading-relaxed text-muted-foreground">{a}</p>
             </details>
           ))}
         </div>
@@ -262,29 +411,57 @@ export function Faq() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+
 export function FinalCta() {
   return (
     <section>
-      <Container className="py-20 sm:py-24">
-        <div className="rounded-lg border border-border bg-card p-10 sm:p-14">
-          <GraduationCap className="size-8 text-primary" aria-hidden="true" />
-          <h2 className="mt-5 max-w-2xl text-3xl font-semibold sm:text-4xl">
-            Start with what you already know about your project.
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Your topic, your department, your supervisor&apos;s instructions and whatever
-            materials you have so far. That is enough to begin.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/register">
-                Build My Project
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/login">I already have an account</Link>
-            </Button>
+      <Container className="py-20 sm:py-28">
+        {/*
+          The one place the ink colour is used as a field rather than as text.
+          Its rarity is what gives it weight.
+        */}
+        <div className="relative overflow-hidden rounded-2xl bg-ink px-8 py-14 elevated-3 sm:px-14 sm:py-16">
+          <div
+            aria-hidden="true"
+            className="absolute inset-y-0 right-10 hidden w-px bg-on-ink/15 lg:block"
+          />
+
+          <div className="relative max-w-2xl">
+            <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.18em] text-on-ink/70 uppercase">
+              <span className="tabular">06</span>
+              <span aria-hidden="true" className="h-px w-8 bg-on-ink/30" />
+              Get started
+            </p>
+
+            <h2 className="mt-5 text-3xl font-semibold text-on-ink sm:text-[2.6rem] sm:leading-[1.1]">
+              Start with what you already know about your project.
+            </h2>
+
+            <p className="mt-4 text-lg leading-relaxed text-on-ink/80">
+              Your topic, your department, your supervisor&apos;s instructions and whatever
+              materials you have so far. That is enough to begin.
+            </p>
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Button asChild size="lg" variant="accent">
+                <Link href="/register">
+                  Build My Project
+                  <ArrowRight
+                    className="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="border-on-ink/25 bg-transparent text-on-ink hover:border-on-ink/40 hover:bg-on-ink/10"
+              >
+                <Link href="/login">I already have an account</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </Container>

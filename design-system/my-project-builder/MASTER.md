@@ -1,234 +1,145 @@
 # Design System Master File
 
-> **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
+> **LOGIC:** When building a specific page, first check `design-system/my-project-builder/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
 > If not, strictly follow the rules below.
 
 ---
 
 **Project:** My Project Builder
-**Generated:** 2026-08-19 07:05:31
-**Category:** Research Lab / University Department
-**Design Dials:** Variance 3/10 (Centered / Minimal) | Motion 2/10 (Subtle) | Density 4/10 (Standard)
+**Revised:** 2026-08-19 — premium redesign
+**Category:** Academic SaaS workspace (research / university)
+**Design Dials:** Variance 5/10 (Balanced) | Motion 4/10 (Standard) | Density 7/10 (Dense)
+
+> This supersedes the original generated system (Variance 3 / Motion 2 / Density 4),
+> which produced a correct but visually flat result: every surface a bordered
+> rectangle, no elevation, no user theme control.
 
 ---
 
-## Global Rules
+## Direction
 
-### Color Palette
+A fusion of three sources. Each contributes one layer and nothing else:
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#1E3A5F` | `--color-primary` |
-| On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#2563EB` | `--color-secondary` |
-| On Secondary | `#FFFFFF` | `--color-on-secondary` |
-| Accent/CTA | `#A16207` | `--color-accent` |
-| On Accent/CTA | `#FFFFFF` | `--color-on-accent` |
-| Background | `#F8FAFC` | `--color-background` |
-| Foreground | `#0F172A` | `--color-foreground` |
-| Card | `#FFFFFF` | `--color-card` |
-| Card Foreground | `#0F172A` | `--color-card-foreground` |
-| Muted | `#E9EEF5` | `--color-muted` |
-| Muted Foreground | `#475569` | `--color-muted-foreground` |
-| Border | `#CBD5E1` | `--color-border` |
-| Destructive | `#DC2626` | `--color-destructive` |
-| On Destructive | `#FFFFFF` | `--color-on-destructive` |
-| Ring | `#1E3A5F` | `--color-ring` |
+| Layer | Source | Contribution |
+|---|---|---|
+| **Structure** | Swiss Modernism 2.0 | 12-column grid, 8px mathematical spacing, hairline rules, **single accent**, minimal decoration |
+| **Character** | Institutional academic | Ink navy + brass, EB Garamond display type, gravity, generous measure |
+| **Craft** | Modern product software | Designed dark mode, real elevation scale, information density, precise micro-interactions |
 
-**Color Notes:** Institutional navy + research accent + serif headings
+### Anti-patterns — explicitly forbidden
 
-### Typography
+These are the tells that make a product read as generic AI output. None of them
+appear in this codebase, and none should be added:
 
-- **Heading Font:** EB Garamond
-- **Body Font:** Crimson Text
-- **Mood:** academic, old-school, university, research, serious, traditional
-- **Google Fonts:** [EB Garamond + Crimson Text](https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=EB+Garamond:wght@400;500;600;700;800&display=swap)
+- Violet/purple gradients; gradient text of any kind
+- Glassmorphism or `backdrop-blur` used as decoration (a 1px blur on a sticky bar is fine)
+- Glowing or gradient borders
+- Floating orbs, mesh gradients, blurred colour blobs
+- Emoji as icons — **Lucide SVG only**
+- More than one accent colour
 
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=EB+Garamond:wght@400;500;600;700;800&display=swap');
-```
-
-### Spacing Variables
-
-*Density: 4/10 — Standard*
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
-
-### Shadow Depths
-
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+Depth comes from **surface, hairline and shadow only**.
 
 ---
 
-## Component Specs
+## Colour
 
-### Buttons
+All colour is a semantic token in `src/app/globals.css`. Components reference the
+token, never a raw hex value.
 
-```css
-/* Primary Button */
-.btn-primary {
-  background: #A16207;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
+### The `--ink` / `--primary` distinction — important
 
-.btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
+`--primary` **inverts** in dark mode (deep navy → light blue) so it stays legible
+as text and button fills. `--ink` **stays dark in both modes** and is reserved for
+large colour *fields* — the auth panel, the closing call to action. Using
+`--primary` for a full-bleed panel turns it into a glaring bright block in dark
+mode. This bug has been fixed once; do not reintroduce it.
 
-/* Secondary Button */
-.btn-secondary {
-  background: transparent;
-  color: #1E3A5F;
-  border: 2px solid #1E3A5F;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-```
+### Verified contrast
 
-### Cards
+Measured in-browser, both modes. Every text pair clears WCAG AA (4.5:1); every
+component boundary clears 3:1.
 
-```css
-.card {
-  background: #F8FAFC;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
-  cursor: pointer;
-}
+| Pair | Light | Dark |
+|---|---|---|
+| foreground / background | 17.6 | 16.2 |
+| muted-foreground / card | 6.0 | 6.8 |
+| subtle-foreground / card | 4.9 | 5.1 |
+| accent / card | 5.1 | 7.9 |
+| on-primary / primary | 13.4 | 7.9 |
+| input border / card | 3.3 | 3.3 |
 
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-```
-
-### Inputs
-
-```css
-.input {
-  padding: 12px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 200ms ease;
-}
-
-.input:focus {
-  border-color: #1E3A5F;
-  outline: none;
-  box-shadow: 0 0 0 3px #1E3A5F20;
-}
-```
-
-### Modals
-
-```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-}
-```
+`--input` is deliberately darker than `--border`: a form field's boundary is a
+UI component (3:1 required), a decorative divider is not.
 
 ---
 
-## Style Guidelines
+## Theme
 
-**Style:** Minimalism & Swiss Style
+Three states, not two — `light`, `dark`, `system`. `system` is a real choice.
 
-**Keywords:** Clean, simple, spacious, functional, white space, high contrast, geometric, sans-serif, grid-based, essential
+- An explicit choice writes `data-theme` on `<html>` and persists to `localStorage`.
+- Under `system` the attribute is **removed**, so CSS `prefers-color-scheme` decides.
+  The OS stays the single source of truth rather than being snapshotted into storage.
+- A blocking inline script in the root layout applies the stored theme **before first
+  paint**. Without it there is a white flash on every load.
+- The chosen theme is read via `useSyncExternalStore`, not `useState`. The document
+  is the owner; a `useState` initialiser returns `"system"` on the server and the
+  real value on the client, which leaves `aria-pressed` permanently wrong after
+  hydration.
 
-**Best For:** Enterprise apps, dashboards, documentation sites, SaaS platforms, professional tools
+---
 
-**Key Effects:** Subtle hover (200-250ms), smooth transitions, sharp shadows if any, clear type hierarchy, fast loading
+## Elevation
 
-### Page Pattern
+Never hand-write a shadow. Use `.elevated-1` … `.elevated-4`.
 
-**Pattern Name:** Portfolio Grid
+- **Light:** two-layer cast shadow, tight and neutral.
+- **Dark:** shadows are invisible against a dark ground, so elevation is carried by
+  a **lighter surface plus a 1px inset top highlight** (`--hairline`). This is the
+  single most common reason a dark theme reads as cheap.
 
-- **Conversion Strategy:** Visuals first. Filter by category. Fast loading essential.
-- **CTA Placement:** Project Card Hover + Footer Contact
-- **Section Order:** Hero (Name/Role) > Project Grid (Masonry) > About/Philosophy > Contact
+---
+
+## Typography
+
+- **Display:** EB Garamond — headings, statistics, section numerals. Letter-spacing `-0.015em`.
+- **UI:** Inter.
+- **Numerals:** `.tabular` wherever figures are compared or stacked.
+
+Swiss recommends a geometric sans throughout; the serif display is a deliberate
+departure. It is what keeps the product reading as academic rather than as another
+developer tool — and it is the main reason the page does not look AI-generated.
 
 ---
 
 ## Motion
 
-**Scroll Reveal** (Subtle) — Trigger: scroll (viewport enter) | Duration: 300-400ms | Easing: `power1.out`
+Short and near-linear. Interface feedback should feel immediate, not animated.
 
-```js
-gsap.from(el, { opacity: 0, y: 12, duration: 0.35, ease: 'power1.out', scrollTrigger: { trigger: el, start: 'top 90%', toggleActions: 'play none none reverse' } });
-```
-
-**Framework notes:** Requires the ScrollTrigger plugin registered once via gsap.registerPlugin(ScrollTrigger); Use matchMedia('(prefers-reduced-motion: reduce)') to skip non-essential motion and render the final state immediately
-
-- ✅ Keep the y offset small (8-16px) so it reads as a fade, not a slide
-- ❌ Don't reveal below-the-fold content needed for SEO/crawlers as invisible-by-default without a no-JS fallback
-- ⚡ toggleActions 'play none none reverse' avoids re-triggering on every scroll direction change
+- `--duration-fast: 140ms` for hover/colour, `--duration-base: 200ms` for layout.
+- Buttons use `active:translate-y-px` — the one piece of motion that carries meaning.
+- Theme switching applies `.theme-transition` **only during the switch**, so ordinary
+  hover states are never slowed by a global transition.
+- `prefers-reduced-motion` drops all non-essential motion.
 
 ---
 
-## Anti-Patterns (Do NOT Use)
+## Navigation
 
-- ❌ Low hierarchy
-- ❌ no publication filtering
-- ❌ cluttered visuals
+Collapsible sidebar + top bar (`src/components/shell/app-shell.tsx`).
 
-### Additional Forbidden Patterns
+- Sidebar collapses to an icon rail; the preference persists and is read during
+  render, so it never paints expanded and then snaps shut.
+- Inside the workspace it is **always** collapsed — the editor has its own section
+  navigator, and two nav columns compete for the same job. Derived from the route,
+  not pushed through state; the collapse control is disabled there rather than
+  appearing to do nothing.
+- Below `lg` it becomes an overlay drawer, tied to the route it was opened on so
+  navigating away closes it without an effect.
+- Active item is marked by a 2px brass bar — the single accent, used only to mark
+  position.
 
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
-
----
-
-## Pre-Delivery Checklist
-
-Before delivering any UI code, verify:
-
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
-- [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
-- [ ] No horizontal scroll on mobile
+**Every nav entry points at a route that exists.** Features arriving in later
+milestones are absent, not present-and-inert.

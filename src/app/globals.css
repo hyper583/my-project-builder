@@ -1,129 +1,422 @@
 @import "tailwindcss";
 
 /*
- * My Project Builder — design tokens
+ * My Project Builder — design system
+ * ==================================
  *
- * Institutional navy + research accent + serif headings. The product should
- * read as serious academic software, so the palette stays restrained and the
- * hierarchy is carried by typography and spacing rather than by colour.
+ * Structure from Swiss Modernism: a strict grid, 8px mathematical spacing,
+ * high contrast, minimal decoration, and a SINGLE accent used sparingly.
+ * Character from institutional academic publishing: ink and brass, serif
+ * display type, generous measure. Craft from modern product software: a real
+ * elevation scale, a dark mode that is designed rather than inverted, and
+ * motion that is fast and purposeful.
  *
- * Every colour is defined here as a semantic token. Components reference the
- * token, never a raw hex value.
+ * Deliberately absent: glass/backdrop-blur as decoration, gradient text, mesh
+ * or orb backgrounds, glowing borders. Those read as generic AI product and
+ * age badly. Depth here comes from surface, hairline and shadow only.
+ *
+ * Every colour is a semantic token. Components reference the token, never a
+ * raw hex value.
  */
 
+/* ============================================================
+   LIGHT — the default
+   ============================================================ */
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
 
+  /* Surfaces, lightest to most raised. */
+  --background: #f7f7f5;
+  --surface: #fdfdfc;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #0d1117;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f0f0ed;
 
-  --primary: #1e3a5f;
+  --foreground: #0d1117;
+  --muted: #ececea;
+  --muted-foreground: #5b6472;
+  --subtle-foreground: #69727f;
+
+  /*
+   * Ink — reserved for large colour FIELDS (the auth panel, the closing call
+   * to action). Distinct from `--primary` on purpose: primary inverts to a
+   * light tint in dark mode so it stays legible as text and buttons, which
+   * would turn a full-bleed panel into a glaring bright block.
+   */
+  --ink: #16304d;
+  --on-ink: #f7f7f5;
+
+  /* Ink navy — structure and primary action. */
+  --primary: #16304d;
+  --primary-hover: #1f4066;
   --on-primary: #ffffff;
 
   --secondary: #2563eb;
   --on-secondary: #ffffff;
 
-  --accent: #a16207;
+  /* Brass — the single accent. Used for emphasis, never as decoration. */
+  --accent: #96631f;
+  --accent-hover: #7d5219;
+  --accent-subtle: #f5ecdd;
   --on-accent: #ffffff;
 
-  --muted: #e9eef5;
-  --muted-foreground: #475569;
+  --border: #e0e0dc;
+  --border-strong: #c9c9c3;
+  --input: #8e8e87;
+  --ring: #16304d;
 
-  --border: #cbd5e1;
-  --input: #cbd5e1;
-  --ring: #1e3a5f;
-
-  --destructive: #b91c1c;
+  --destructive: #b42318;
+  --destructive-subtle: #fdeceb;
   --on-destructive: #ffffff;
 
-  --success: #15803d;
-  --warning: #a16207;
+  --success: #17683a;
+  --success-subtle: #e6f4ec;
+  --warning: #96631f;
+  --warning-subtle: #f5ecdd;
 
-  --radius: 0.5rem;
+  /*
+   * Elevation. In light mode depth is cast shadow, tuned tight and warm —
+   * two layers so the shape reads at both close and far distance.
+   */
+  --elevation-1: 0 1px 2px rgba(13, 17, 23, 0.05), 0 1px 1px rgba(13, 17, 23, 0.03);
+  --elevation-2: 0 2px 4px rgba(13, 17, 23, 0.05), 0 4px 12px rgba(13, 17, 23, 0.05);
+  --elevation-3: 0 4px 8px rgba(13, 17, 23, 0.05), 0 12px 28px rgba(13, 17, 23, 0.08);
+  --elevation-4: 0 8px 16px rgba(13, 17, 23, 0.06), 0 24px 56px rgba(13, 17, 23, 0.12);
+
+  /* Top highlight — carries elevation in dark mode; inert here. */
+  --hairline: transparent;
 }
 
+/* ============================================================
+   DARK — designed, not derived
+   ============================================================
+
+   Dark surfaces are near-black with a slight cool cast, never navy-tinted:
+   a tinted dark mode makes every colour on top of it look muddy. Elevation is
+   expressed by LIGHTENING the surface and adding a 1px top highlight, because
+   a cast shadow is invisible against a dark ground — which is the usual reason
+   a dark theme reads as cheap.
+
+   Declared twice on purpose: `[data-theme="dark"]` for an explicit choice,
+   and `prefers-color-scheme` for "system", guarded so an explicit light
+   choice always wins over the OS preference. */
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b1220;
-    --foreground: #e6edf7;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
 
-    --card: #111a2b;
-    --card-foreground: #e6edf7;
+    --background: #0a0c10;
+    --surface: #101318;
+    --card: #14181e;
+    --card-foreground: #e8eaed;
+    --surface-raised: #1a1f26;
+    --surface-sunken: #070609;
 
-    --primary: #93b4e3;
-    --on-primary: #0b1220;
+    --foreground: #e8eaed;
+    --muted: #1c2129;
+    --muted-foreground: #98a1af;
+    --subtle-foreground: #808a99;
+
+    --ink: #141922;
+    --on-ink: #e8eaed;
+
+    --primary: #7fa8d9;
+    --primary-hover: #9dbde5;
+    --on-primary: #0a0c10;
 
     --secondary: #60a5fa;
-    --on-secondary: #0b1220;
+    --on-secondary: #0a0c10;
 
     --accent: #d9a441;
-    --on-accent: #1a1204;
+    --accent-hover: #e5b660;
+    --accent-subtle: #241c0d;
+    --on-accent: #17130a;
 
-    --muted: #1a2436;
-    --muted-foreground: #9fb0c9;
+    --border: #252b34;
+    --border-strong: #39414d;
+    --input: #626b7a;
+    --ring: #7fa8d9;
 
-    --border: #26334a;
-    --input: #26334a;
-    --ring: #93b4e3;
-
-    --destructive: #f87171;
+    --destructive: #f2776b;
+    --destructive-subtle: #2a1512;
     --on-destructive: #1a0505;
 
-    --success: #4ade80;
-    --warning: #fbbf24;
+    --success: #56d391;
+    --success-subtle: #0e2418;
+    --warning: #e5b660;
+    --warning-subtle: #241c0d;
+
+    --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.55);
+    --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.7);
+
+    --hairline: rgba(255, 255, 255, 0.07);
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0a0c10;
+  --surface: #101318;
+  --card: #14181e;
+  --card-foreground: #e8eaed;
+  --surface-raised: #1a1f26;
+  --surface-sunken: #070609;
+
+  --foreground: #e8eaed;
+  --muted: #1c2129;
+  --muted-foreground: #98a1af;
+  --subtle-foreground: #808a99;
+
+  --ink: #141922;
+  --on-ink: #e8eaed;
+
+  --primary: #7fa8d9;
+  --primary-hover: #9dbde5;
+  --on-primary: #0a0c10;
+
+  --secondary: #60a5fa;
+  --on-secondary: #0a0c10;
+
+  --accent: #d9a441;
+  --accent-hover: #e5b660;
+  --accent-subtle: #241c0d;
+  --on-accent: #17130a;
+
+  --border: #252b34;
+  --border-strong: #39414d;
+  --input: #626b7a;
+  --ring: #7fa8d9;
+
+  --destructive: #f2776b;
+  --destructive-subtle: #2a1512;
+  --on-destructive: #1a0505;
+
+  --success: #56d391;
+  --success-subtle: #0e2418;
+  --warning: #e5b660;
+  --warning-subtle: #241c0d;
+
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.55);
+  --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.7);
+
+  --hairline: rgba(255, 255, 255, 0.07);
+}
+
+/* ============================================================
+   SHAPE, RHYTHM, MOTION — mode-independent
+   ============================================================ */
+
+:root {
+  /* Tighter than the usual SaaS default. Sharp reads as precise. */
+  --radius: 0.375rem;
+
+  /* 8px base unit. Every gap in the product is a multiple of it. */
+  --unit: 0.5rem;
+
+  /*
+   * Motion. Short and near-linear: interface feedback should feel immediate,
+   * not animated. Exits are faster than entrances so dismissal feels prompt.
+   */
+  --duration-instant: 80ms;
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-on-primary: var(--on-primary);
   --color-secondary: var(--secondary);
   --color-on-secondary: var(--on-secondary);
+
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
   --color-on-accent: var(--on-accent);
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
   --color-destructive: var(--destructive);
+  --color-destructive-subtle: var(--destructive-subtle);
   --color-on-destructive: var(--on-destructive);
   --color-success: var(--success);
+  --color-success-subtle: var(--success-subtle);
   --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 4px);
+  --radius-lg: calc(var(--radius) + 3px);
+  --radius-xl: calc(var(--radius) + 7px);
+
+  --shadow-e1: var(--elevation-1);
+  --shadow-e2: var(--elevation-2);
+  --shadow-e3: var(--elevation-3);
+  --shadow-e4: var(--elevation-4);
+
+  --ease-out-expo: var(--ease-out);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* ============================================================
+   BASE
+   ============================================================ */
+
+/*
+ * Element defaults live in `@layer base` so that a utility can override them.
+ * Unlayered CSS beats every layered rule regardless of specificity, so a bare
+ * `h2 { color: … }` here would silently defeat `text-on-ink` on the ink panels
+ * and render a near-black heading on navy. Layer membership is load-bearing.
+ */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
+
+  /*
+   * Headings carry the academic character. Tight tracking keeps a large serif
+   * from reading as decorative.
+   */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
+    color: var(--foreground);
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
 }
 
-/* Headings carry the academic character. */
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
-  color: var(--foreground);
-  text-wrap: balance;
+/* Figures line up in columns wherever they are compared. */
+.tabular,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Long-form prose sits at a comfortable measure. */
-p {
-  text-wrap: pretty;
+/* ------------------------------------------------------------
+   Elevation utilities
+
+   `.elevated` is the one place depth is defined, so light and dark stay in
+   step: a cast shadow in light, a lighter surface plus a top highlight in
+   dark. Components ask for a level, never for a specific shadow.
+   ------------------------------------------------------------ */
+
+.elevated-1 {
+  box-shadow: var(--elevation-1), inset 0 1px 0 0 var(--hairline);
+}
+.elevated-2 {
+  box-shadow: var(--elevation-2), inset 0 1px 0 0 var(--hairline);
+}
+.elevated-3 {
+  box-shadow: var(--elevation-3), inset 0 1px 0 0 var(--hairline);
+}
+.elevated-4 {
+  box-shadow: var(--elevation-4), inset 0 1px 0 0 var(--hairline);
+}
+
+/* ------------------------------------------------------------
+   Motion
+
+   Entrances are sequenced rather than simultaneous, which is what reads as
+   engineered rather than merely animated. Nothing here loops: an infinite
+   animation belongs to a loading indicator, never to decoration.
+
+   Every rule below is switched off wholesale by the reduced-motion block
+   further down, which renders the final state immediately.
+   ------------------------------------------------------------ */
+
+/* Revealed on scroll. Starts hidden and is released by an observer. */
+.reveal {
+  opacity: 0;
+  translate: 0 12px;
+  transition:
+    opacity 380ms var(--ease-out),
+    translate 380ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/*
+ * A rule that draws itself out from nothing. The Swiss signature, in motion.
+ *
+ * Scoped to `.reveal` deliberately: a rule outside a revealed container is
+ * left at full width rather than collapsed to nothing. Anything that hides
+ * itself waiting to be released must be released by something that is
+ * definitely present, or it simply never appears.
+ */
+.reveal .draw-rule {
+  transform-origin: left center;
+  scale: 0 1;
+  transition: scale 500ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible .draw-rule {
+  scale: 1 1;
+}
+
+/*
+ * Pressable surfaces. The shadow deepens on hover and settles back on press,
+ * so a click feels like the surface actually moved rather than merely
+ * changing colour.
+ */
+.press {
+  transition:
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.press:hover {
+  box-shadow: var(--elevation-2), inset 0 1px 0 0 var(--hairline);
+}
+
+.press:active {
+  box-shadow: var(--elevation-1), inset 0 1px 0 0 var(--hairline);
 }
 
 /* Visible focus for keyboard users — never removed. */
@@ -131,6 +424,23 @@ p {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* A hairline that stays visible in both modes without shouting. */
+.rule {
+  border-color: var(--border);
+}
+
+/*
+ * Theme transition. Applied only while the toggle is switching, so ordinary
+ * hover and focus states are never slowed down by a global transition.
+ */
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color var(--duration-base) var(--ease-in-out),
+    border-color var(--duration-base) var(--ease-in-out),
+    color var(--duration-base) var(--ease-in-out) !important;
 }
 
 /* Respect reduced-motion: all non-essential motion is dropped. */
@@ -142,6 +452,19 @@ p {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /*
+   * Critical: without this, content that waits for an observer would stay
+   * invisible forever for anyone who has asked for less motion.
+   */
+  .reveal {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+
+  .reveal .draw-rule {
+    scale: 1 1 !important;
   }
 }
 
@@ -160,4 +483,5 @@ p {
   color: var(--foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  box-shadow: var(--elevation-3);
 }

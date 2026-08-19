@@ -24,7 +24,7 @@ export interface ProjectCardData {
 function StatusPill({ status, kind }: { status: string; kind: "REAL" | "DEMO" }) {
   if (kind === "DEMO") {
     return (
-      <span className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+      <span className="rounded-full border border-accent/35 bg-accent-subtle px-2.5 py-0.5 text-xs font-medium text-accent">
         Sample project
       </span>
     );
@@ -75,7 +75,7 @@ function NewProjectForm() {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="e.g. Effect of study habits on academic performance"
-          className="h-11 w-full rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="h-11 w-full rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         />
       </div>
       <Button type="submit" disabled={pending || title.trim().length === 0}>
@@ -101,7 +101,7 @@ function DemoLauncher({ hasDemo }: { hasDemo: boolean }) {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 elevated-1">
       <div className="flex items-start gap-3">
         <BookOpen className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden="true" />
         <div>
@@ -180,13 +180,13 @@ export function ProjectList({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by title, topic or department"
-            className="h-11 w-full rounded-md border border-input bg-card pr-3 pl-9 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="h-11 w-full rounded-md border border-input bg-card pr-3 pl-9 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           />
         </div>
       </form>
 
       {projects.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-10 text-center">
+        <div className="rounded-xl border border-dashed border-border-strong bg-card/40 p-12 text-center">
           <FolderOpen className="mx-auto size-7 text-muted-foreground" aria-hidden="true" />
           <h2 className="mt-4 text-lg font-semibold">
             {query ? "No projects matched that search" : "No projects yet"}
@@ -202,7 +202,7 @@ export function ProjectList({
           {projects.map((project) => (
             <li
               key={project.id}
-              className="flex flex-col rounded-lg border border-border bg-card p-5"
+              className="flex flex-col rounded-xl border border-border bg-card p-5 elevated-1 transition-[box-shadow,border-color,translate] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:elevated-3"
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-lg font-semibold">
@@ -244,7 +244,7 @@ export function ProjectList({
               <div className="mt-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">Setup</span>
-                  <span className="text-muted-foreground">{project.completionPct}%</span>
+                  <span className="tabular text-muted-foreground">{project.completionPct}%</span>
                 </div>
                 <div
                   role="progressbar"

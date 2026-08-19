@@ -150,8 +150,8 @@ export function AssistantChat({
             key={msg.id}
             className={
               msg.role === "USER"
-                ? "ml-6 rounded-lg rounded-br-sm border border-border bg-muted/60 p-3 text-sm leading-relaxed"
-                : "mr-6 rounded-lg rounded-bl-sm border border-border bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap"
+                ? "ml-6 rounded-lg rounded-br-sm border border-border bg-muted p-3 text-sm leading-relaxed"
+                : "mr-6 rounded-lg rounded-bl-sm border border-border bg-card p-3 text-sm leading-relaxed whitespace-pre-wrap elevated-1"
             }
           >
             {msg.content}
@@ -159,14 +159,14 @@ export function AssistantChat({
         ))}
 
         {streaming ? (
-          <div className="mr-6 rounded-lg rounded-bl-sm border border-border bg-background p-3 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className="mr-6 rounded-lg rounded-bl-sm border border-border bg-card p-3 text-sm leading-relaxed whitespace-pre-wrap elevated-1">
             {streaming}
             <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-primary align-text-bottom" aria-hidden="true" />
           </div>
         ) : null}
 
         {error ? (
-          <p role="alert" className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          <p role="alert" className="flex items-start gap-2 rounded-md border border-destructive/35 bg-destructive-subtle p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             {error}
           </p>
@@ -176,7 +176,7 @@ export function AssistantChat({
       </div>
 
       <form
-        className="border-t border-border p-3"
+        className="border-t border-border bg-surface p-3"
         onSubmit={(event) => {
           event.preventDefault();
           void send();
@@ -202,7 +202,7 @@ export function AssistantChat({
                 void send();
               }
             }}
-            className="max-h-40 min-h-[3rem] flex-1 resize-y rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+            className="max-h-40 min-h-[3rem] flex-1 resize-y rounded-md border border-input bg-card px-3 py-2 text-sm transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
           />
           {busy ? (
             <button
