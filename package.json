@@ -18,12 +18,20 @@
     "test:e2e": "playwright test",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run build"
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build",
+    "worker": "tsx --tsconfig tsconfig.worker.json worker/index.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.118.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@radix-ui/react-slot": "^1.3.3",
+    "@tiptap/extension-image": "^3.30.2",
+    "@tiptap/extension-link": "^3.30.2",
+    "@tiptap/extension-placeholder": "^3.30.2",
+    "@tiptap/extension-table": "^3.30.2",
+    "@tiptap/react": "^3.30.2",
+    "@tiptap/starter-kit": "^3.30.2",
     "better-auth": "^1.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
