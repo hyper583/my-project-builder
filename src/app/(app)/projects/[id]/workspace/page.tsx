@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { WorkspaceShell, type WorkspaceSection } from "@/components/workspace/workspace-shell";
 import type { NavChapter } from "@/components/workspace/panels";
+import type { ChatMessage } from "@/components/workspace/assistant-chat";
 import { requireProject } from "@/server/dal/projects";
 import { prisma } from "@/server/db";
 import { aiConfigured } from "@/server/services/ai";
@@ -11,7 +12,7 @@ export const metadata: Metadata = { title: "Workspace" };
 
 export default async function WorkspacePage({ params }: PageProps<"/projects/[id]/workspace">) {
   const { id } = await params;
-  await requireProject(id);
+  const { user } = await requireProject(id);
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -74,6 +75,28 @@ export default async function WorkspacePage({ params }: PageProps<"/projects/[id
     }),
   );
 
+  // The transcript lives server-side, so a reload or a different device
+  // continues the same conversation rather than starting a blank one.
+  const conversation = await prisma.aIConversation.findFirst({
+    where: { projectId: id, userId: user.id },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      messages: {
+        where: { role: { in: ["USER", "ASSISTANT"] } },
+        orderBy: { createdAt: "asc" },
+        take: 50,
+        select: { id: true, role: true, content: true },
+      },
+    },
+  });
+
+  const initialMessages: ChatMessage[] = (conversation?.messages ?? []).map((m) => ({
+    id: m.id,
+    role: m.role === "USER" ? "USER" : "ASSISTANT",
+    content: m.content,
+  }));
+
   return (
     <WorkspaceShell
       projectId={project.id}
@@ -81,6 +104,8 @@ export default async function WorkspacePage({ params }: PageProps<"/projects/[id
       chapters={chapters}
       sections={sections}
       aiConfigured={aiConfigured}
+      initialMessages={initialMessages}
+      initialConversationId={conversation?.id ?? null}
     />
   );
 }

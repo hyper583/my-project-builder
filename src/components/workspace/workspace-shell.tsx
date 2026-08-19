@@ -6,6 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import { PanelLeft, PanelRight } from "lucide-react";
 
 import { SectionEditor } from "@/components/workspace/section-editor";
+import type { ChatMessage } from "@/components/workspace/assistant-chat";
 import { AssistantPanel, ProjectNav, type NavChapter } from "@/components/workspace/panels";
 
 export interface WorkspaceSection {
@@ -30,12 +31,16 @@ export function WorkspaceShell({
   chapters,
   sections,
   aiConfigured,
+  initialMessages,
+  initialConversationId,
 }: {
   projectId: string;
   projectTitle: string;
   chapters: NavChapter[];
   sections: WorkspaceSection[];
   aiConfigured: boolean;
+  initialMessages: ChatMessage[];
+  initialConversationId: string | null;
 }) {
   const firstId = sections[0]?.id ?? null;
   const [activeId, setActiveId] = useState<string | null>(firstId);
@@ -141,6 +146,8 @@ export function WorkspaceShell({
             selection={selection}
             aiConfigured={aiConfigured}
             onApply={applyRevision}
+            initialMessages={initialMessages}
+            initialConversationId={initialConversationId}
           />
         </div>
       </div>

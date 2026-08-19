@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertCircle, Loader2, Sparkles, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { AssistantChat, type ChatMessage } from "@/components/workspace/assistant-chat";
 import { AI_ACTIONS } from "@/lib/ai-actions";
 import { runAiAction } from "@/server/actions/ai-edit";
 
@@ -96,115 +97,153 @@ export function AssistantPanel({
   selection,
   aiConfigured,
   onApply,
+  initialMessages,
+  initialConversationId,
 }: {
   projectId: string;
   sectionId: string | null;
   selection: string;
   aiConfigured: boolean;
   onApply: (text: string) => void;
+  initialMessages: ChatMessage[];
+  initialConversationId: string | null;
 }) {
   const [pending, setPending] = useState<string | null>(null);
   const [result, setResult] = useState<{ text: string; replaces: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"chat" | "actions">("chat");
 
   const hasSelection = selection.trim().length > 0;
   const disabled = !aiConfigured || !hasSelection || !sectionId || pending !== null;
 
   return (
     <aside aria-label="AI assistant" className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-border px-4 py-3">
+      <div className="border-b border-border px-4 pt-3">
         <h2 className="flex items-center gap-2 font-semibold">
           <Sparkles className="size-4 text-accent" aria-hidden="true" />
           AI assistant
         </h2>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          {!aiConfigured
-            ? "AI isn't configured on this installation, so these actions are unavailable."
-            : hasSelection
-              ? "Choose what to do with the text you've highlighted."
-              : "Highlight some text in your document to see what you can do with it."}
-        </p>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        {hasSelection ? (
-          <blockquote className="mb-3 max-h-28 overflow-y-auto rounded-md border border-border bg-muted/40 p-2 text-sm leading-relaxed text-muted-foreground">
-            {selection.slice(0, 400)}
-            {selection.length > 400 ? "…" : ""}
-          </blockquote>
-        ) : null}
-
-        <ul className="space-y-1">
-          {AI_ACTIONS.map((action) => (
-            <li key={action.key}>
-              <button
-                type="button"
-                disabled={disabled}
-                title={action.description}
-                onClick={async () => {
-                  if (!sectionId) return;
-                  setPending(action.key);
-                  setError(null);
-                  setResult(null);
-                  const response = await runAiAction({
-                    projectId,
-                    sectionId,
-                    actionKey: action.key,
-                    selection,
-                  });
-                  setPending(null);
-                  if (response.ok) setResult(response.data);
-                  else setError(response.message);
-                }}
-                className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors duration-200 hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-              >
-                <span>{action.label}</span>
-                {pending === action.key ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                ) : null}
-              </button>
-            </li>
+        <div role="tablist" aria-label="Assistant mode" className="mt-3 flex gap-1">
+          {(["chat", "actions"] as const).map((value) => (
+            <button
+              key={value}
+              role="tab"
+              type="button"
+              aria-selected={tab === value}
+              onClick={() => setTab(value)}
+              className={`cursor-pointer rounded-t-md border-b-2 px-3 py-1.5 text-sm transition-colors duration-200 ${
+                tab === value
+                  ? "border-primary font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {value === "chat" ? "Chat" : "Selection actions"}
+              {value === "actions" && hasSelection ? (
+                <span className="ml-1.5 rounded-full bg-accent/20 px-1.5 text-xs text-accent">
+                  1
+                </span>
+              ) : null}
+            </button>
           ))}
-        </ul>
-
-        {error ? (
-          <p role="alert" className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            {error}
-          </p>
-        ) : null}
-
-        {result ? (
-          <div className="mt-4 rounded-md border border-border bg-card p-3">
-            <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              {result.replaces ? "Suggested revision" : "Assistant"}
-            </p>
-            <div className="max-h-72 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap">
-              {result.text}
-            </div>
-            {result.replaces ? (
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    onApply(result.text);
-                    setResult(null);
-                  }}
-                >
-                  Replace selection
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setResult(null)}>
-                  Discard
-                </Button>
-              </div>
-            ) : (
-              <Button size="sm" variant="ghost" className="mt-3" onClick={() => setResult(null)}>
-                Dismiss
-              </Button>
-            )}
-          </div>
-        ) : null}
+        </div>
       </div>
+
+      {tab === "chat" ? (
+        <AssistantChat
+          projectId={projectId}
+          sectionId={sectionId}
+          aiConfigured={aiConfigured}
+          initialMessages={initialMessages}
+          initialConversationId={initialConversationId}
+        />
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <p className="mb-3 text-sm leading-relaxed text-muted-foreground">
+            {!aiConfigured
+              ? "AI isn't configured on this installation, so these actions are unavailable."
+              : hasSelection
+                ? "Choose what to do with the text you've highlighted."
+                : "Highlight some text in your document to see what you can do with it."}
+          </p>
+          {hasSelection ? (
+            <blockquote className="mb-3 max-h-28 overflow-y-auto rounded-md border border-border bg-muted/40 p-2 text-sm leading-relaxed text-muted-foreground">
+              {selection.slice(0, 400)}
+              {selection.length > 400 ? "…" : ""}
+            </blockquote>
+          ) : null}
+
+          <ul className="space-y-1">
+            {AI_ACTIONS.map((action) => (
+              <li key={action.key}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  title={action.description}
+                  onClick={async () => {
+                    if (!sectionId) return;
+                    setPending(action.key);
+                    setError(null);
+                    setResult(null);
+                    const response = await runAiAction({
+                      projectId,
+                      sectionId,
+                      actionKey: action.key,
+                      selection,
+                    });
+                    setPending(null);
+                    if (response.ok) setResult(response.data);
+                    else setError(response.message);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors duration-200 hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <span>{action.label}</span>
+                  {pending === action.key ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                  ) : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {error ? (
+            <p role="alert" className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              {error}
+            </p>
+          ) : null}
+
+          {result ? (
+            <div className="mt-4 rounded-md border border-border bg-card p-3">
+              <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                {result.replaces ? "Suggested revision" : "Assistant"}
+              </p>
+              <div className="max-h-72 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap">
+                {result.text}
+              </div>
+              {result.replaces ? (
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      onApply(result.text);
+                      setResult(null);
+                    }}
+                  >
+                    Replace selection
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setResult(null)}>
+                    Discard
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" className="mt-3" onClick={() => setResult(null)}>
+                  Dismiss
+                </Button>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
     </aside>
   );
 }

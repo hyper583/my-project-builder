@@ -15,6 +15,12 @@ export interface UntrustedSource {
   readonly text: string;
 }
 
+/** One prior turn in an assistant conversation. */
+export interface ChatTurn {
+  readonly role: "user" | "assistant";
+  readonly content: string;
+}
+
 export interface GenerateOptions {
   /** Fixed operator instruction. Never contains user or document content. */
   readonly system: string;
@@ -27,6 +33,12 @@ export interface GenerateOptions {
    * blocks in a user-role message — never concatenated into the system prompt.
    */
   readonly sources?: readonly UntrustedSource[];
+  /**
+   * Earlier turns of an assistant conversation, oldest first. Sent as real
+   * message turns rather than folded into the instruction, so the model treats
+   * them as conversation rather than as quoted text.
+   */
+  readonly history?: readonly ChatTurn[];
   readonly maxTokens?: number;
   readonly effort?: "low" | "medium" | "high";
 }

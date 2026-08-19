@@ -239,7 +239,9 @@ export function SectionEditor({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit,
+      // StarterKit bundles its own Link. Ours needs different options, so its
+      // copy is switched off rather than registered twice.
+      StarterKit.configure({ link: false }),
       Link.configure({ openOnClick: false, autolink: true }),
       Image,
       Table.configure({ resizable: true }),

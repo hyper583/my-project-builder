@@ -4,6 +4,7 @@ import type { z } from "zod";
 
 import { env } from "@/lib/env";
 import { AppError } from "@/server/errors";
+import { normaliseHistory } from "@/server/services/ai/history";
 import { buildUserMessage, renderSources } from "@/server/services/ai/prompts";
 import type {
   AIProvider,
@@ -39,10 +40,12 @@ export class AnthropicProvider implements AIProvider {
   }
 
   /**
-   * Splits the prompt into a cacheable prefix and a volatile suffix.
-   * Anything that changes per call must come after the breakpoint.
+   * The cacheable prefix: project facts and uploaded sources.
+   *
+   * Anything that changes per call must stay out of these blocks, or the
+   * cache is missed on every request.
    */
-  private buildContent(options: GenerateOptions & { selection?: string }) {
+  private stableBlocks(options: GenerateOptions): Anthropic.TextBlockParam[] {
     const stable: string[] = [];
     if (options.context.trim()) {
       stable.push(`<project_context>\n${options.context.trim()}\n</project_context>`);
@@ -50,25 +53,58 @@ export class AnthropicProvider implements AIProvider {
     if (options.sources && options.sources.length > 0) {
       stable.push(renderSources(options.sources));
     }
+    if (stable.length === 0) return [];
 
-    const blocks: Anthropic.TextBlockParam[] = [];
-    if (stable.length > 0) {
-      blocks.push({
+    return [
+      {
         type: "text",
         text: stable.join("\n\n"),
-        // Breakpoint: everything above is reused across the pipeline's stages.
+        // Breakpoint: everything above is reused across the pipeline's stages
+        // and across the turns of a conversation.
         cache_control: { type: "ephemeral" },
-      });
-    }
+      },
+    ];
+  }
 
-    const volatile: string[] = [];
+  /** The volatile suffix — the live request, never cached. */
+  private volatileText(options: GenerateOptions & { selection?: string }): string {
+    const parts: string[] = [];
     if (options.selection) {
-      volatile.push(`<selected_passage>\n${options.selection}\n</selected_passage>`);
+      parts.push(`<selected_passage>\n${options.selection}\n</selected_passage>`);
     }
-    volatile.push(options.instruction.trim());
-    blocks.push({ type: "text", text: volatile.join("\n\n") });
+    parts.push(options.instruction.trim());
+    return parts.join("\n\n");
+  }
 
-    return blocks;
+  /**
+   * Assembles the message array.
+   *
+   * The cacheable project context rides on the FIRST user turn so the prefix
+   * stays byte-identical as a conversation grows; earlier turns follow it and
+   * the live request is always the final user turn. History is normalised
+   * first because a stored transcript can break the alternation the API
+   * requires.
+   */
+  private buildMessages(
+    options: GenerateOptions & { selection?: string },
+  ): Anthropic.MessageParam[] {
+    const stable = this.stableBlocks(options);
+    const volatile = this.volatileText(options);
+    const history = normaliseHistory(options.history ?? []);
+
+    if (history.length === 0) {
+      return [{ role: "user", content: [...stable, { type: "text", text: volatile }] }];
+    }
+
+    const [first, ...rest] = history;
+    const messages: Anthropic.MessageParam[] = [
+      { role: "user", content: [...stable, { type: "text", text: first!.content }] },
+    ];
+    for (const turn of rest) {
+      messages.push({ role: turn.role, content: turn.content });
+    }
+    messages.push({ role: "user", content: volatile });
+    return messages;
   }
 
   private systemBlocks(system: string): Anthropic.TextBlockParam[] {
@@ -100,7 +136,7 @@ export class AnthropicProvider implements AIProvider {
         max_tokens: options.maxTokens ?? 16000,
         system: this.systemBlocks(options.system),
         output_config: this.effort(options),
-        messages: [{ role: "user", content: this.buildContent(options) }],
+        messages: this.buildMessages(options),
       });
 
       return {
@@ -126,7 +162,7 @@ export class AnthropicProvider implements AIProvider {
         max_tokens: options.maxTokens ?? 64000,
         system: this.systemBlocks(options.system),
         output_config: this.effort(options),
-        messages: [{ role: "user", content: this.buildContent(options) }],
+        messages: this.buildMessages(options),
       });
 
       stream.on("text", onDelta);
@@ -150,7 +186,7 @@ export class AnthropicProvider implements AIProvider {
         max_tokens: options.maxTokens ?? 8000,
         system: this.systemBlocks(options.system),
         output_config: this.effort(options),
-        messages: [{ role: "user", content: this.buildContent(options) }],
+        messages: this.buildMessages(options),
       });
 
       return {
