@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { AlertCircle, PencilLine } from "lucide-react";
+import { PencilLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
+import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
-import { isAiConfigured } from "@/lib/env";
+import { aiConfigured } from "@/server/services/ai";
 import { requireProject } from "@/server/dal/projects";
 import { prisma } from "@/server/db";
 
@@ -92,6 +93,11 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     { id: user.id, role: user.role, planTier: user.planTier },
     { id: p.id, kind: p.kind, ownerId: p.userId },
   );
+
+  const activeJob = await prisma.generationJob.findFirst({
+    where: { projectId: id, status: { in: ["QUEUED", "RUNNING"] } },
+    select: { id: true },
+  });
 
   const methodologyForm = METHODOLOGY_FORMS[methodologyKeyFor(p.projectType)];
   const methodologyData = (p.methodology?.data ?? {}) as Record<string, string | string[]>;
@@ -225,27 +231,20 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
         </section>
       </div>
 
-      <div className="mt-8 rounded-lg border border-border bg-card p-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button asChild variant="outline">
-            <Link href={`/projects/${id}/wizard/1`}>Edit Blueprint</Link>
-          </Button>
-          <Button disabled={!isAiConfigured} title={isAiConfigured ? undefined : "AI is not configured on this installation"}>
-            Generate Project
-          </Button>
+      {p.kind === "DEMO" ? null : (
+        <div className="mt-8">
+          <GenerationPanel
+            projectId={id}
+            aiConfigured={aiConfigured}
+            initiallyRunning={activeJob !== null}
+          />
         </div>
+      )}
 
-        {!isAiConfigured ? (
-          <div role="status" className="mt-4 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-            <AlertCircle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-            <p className="leading-relaxed">
-              <strong className="font-medium">AI is not configured on this installation.</strong>{" "}
-              Generation stays disabled until an AI provider key is set, rather than producing
-              placeholder text that looks like a real project. Your blueprint is saved and will be
-              used exactly as shown once it is configured.
-            </p>
-          </div>
-        ) : null}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button asChild variant="outline">
+          <Link href={`/projects/${id}/wizard/1`}>Edit Blueprint</Link>
+        </Button>
       </div>
     </div>
   );
