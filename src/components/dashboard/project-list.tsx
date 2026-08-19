@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { FilePlus2, FolderOpen, Loader2, Search } from "lucide-react";
+import { BookOpen, FilePlus2, FolderOpen, Loader2, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { createDemoProject } from "@/server/actions/demo";
 import { createProject, deleteProject, duplicateProject } from "@/server/actions/projects";
 
 export interface ProjectCardData {
@@ -94,6 +95,53 @@ function NewProjectForm() {
   );
 }
 
+function DemoLauncher({ hasDemo }: { hasDemo: boolean }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
+      <div className="flex items-start gap-3">
+        <BookOpen className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden="true" />
+        <div>
+          <p className="font-medium">
+            {hasDemo ? "You have a sample project" : "Not sure what you'll get?"}
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Open a complete five-chapter sample to see how a finished project is organised. Its
+            findings are illustrative — it describes no real study.
+          </p>
+          {error ? (
+            <p role="alert" className="mt-1 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            setError(null);
+            const result = await createDemoProject();
+            if (!result.ok) {
+              setError(result.message);
+              return;
+            }
+            router.push(`/projects/${result.data.id}/blueprint`);
+            router.refresh();
+          })
+        }
+      >
+        {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+        {hasDemo ? "Open sample project" : "Explore a sample project"}
+      </Button>
+    </div>
+  );
+}
+
 export function ProjectList({
   projects,
   query,
@@ -108,6 +156,8 @@ export function ProjectList({
   return (
     <div className="space-y-8">
       <NewProjectForm />
+
+      <DemoLauncher hasDemo={projects.some((p) => p.kind === "DEMO")} />
 
       <form
         role="search"

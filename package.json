@@ -15,7 +15,10 @@
     "db:seed": "tsx prisma/seed/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
