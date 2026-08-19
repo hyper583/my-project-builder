@@ -151,7 +151,7 @@ export function MaterialsStep({
           id="doc-category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="h-11 w-full cursor-pointer rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:max-w-sm"
+          className="h-11 w-full cursor-pointer rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:max-w-sm"
         >
           <option value="">Not specified</option>
           {CATEGORIES.map((c) => (
@@ -205,7 +205,7 @@ export function MaterialsStep({
       </div>
 
       {errors.length > 0 ? (
-        <div role="alert" className="space-y-1 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="space-y-1 rounded-md border border-destructive/35 bg-destructive-subtle p-3 text-sm text-destructive">
           {errors.map((e) => (
             <p key={e}>{e}</p>
           ))}

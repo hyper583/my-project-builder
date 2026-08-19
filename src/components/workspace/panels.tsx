@@ -51,8 +51,10 @@ export function ProjectNav({
                       type="button"
                       onClick={() => onSelect(section.id)}
                       aria-current={active ? "true" : undefined}
-                      className={`flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-200 ${
-                        active ? "bg-primary/10 font-medium" : "hover:bg-muted"
+                      className={`relative flex w-full cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors duration-150 ${
+                        active
+                          ? "bg-muted font-medium before:absolute before:top-1 before:bottom-1 before:-left-1 before:w-0.5 before:rounded-full before:bg-accent"
+                          : "hover:bg-muted/60"
                       }`}
                     >
                       <span className="min-w-0 flex-1">
@@ -118,7 +120,7 @@ export function AssistantPanel({
 
   return (
     <aside aria-label="AI assistant" className="flex h-full flex-col overflow-hidden">
-      <div className="border-b border-border px-4 pt-3">
+      <div className="border-b border-border bg-surface px-4 pt-3">
         <h2 className="flex items-center gap-2 font-semibold">
           <Sparkles className="size-4 text-accent" aria-hidden="true" />
           AI assistant
@@ -139,7 +141,7 @@ export function AssistantPanel({
             >
               {value === "chat" ? "Chat" : "Selection actions"}
               {value === "actions" && hasSelection ? (
-                <span className="ml-1.5 rounded-full bg-accent/20 px-1.5 text-xs text-accent">
+                <span className="ml-1.5 rounded-full bg-accent-subtle px-1.5 text-xs text-accent">
                   1
                 </span>
               ) : null}
@@ -194,7 +196,7 @@ export function AssistantPanel({
                     if (response.ok) setResult(response.data);
                     else setError(response.message);
                   }}
-                  className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors duration-200 hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+                  className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-left text-sm transition-colors duration-150 hover:border-border-strong hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
                 >
                   <span>{action.label}</span>
                   {pending === action.key ? (
@@ -206,14 +208,14 @@ export function AssistantPanel({
           </ul>
 
           {error ? (
-            <p role="alert" className="mt-3 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            <p role="alert" className="mt-3 flex items-start gap-2 rounded-md border border-destructive/35 bg-destructive-subtle p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               {error}
             </p>
           ) : null}
 
           {result ? (
-            <div className="mt-4 rounded-md border border-border bg-card p-3">
+            <div className="mt-4 rounded-lg border border-border bg-card p-3 elevated-2">
               <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {result.replaces ? "Suggested revision" : "Assistant"}
               </p>

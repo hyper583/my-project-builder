@@ -15,7 +15,7 @@ import type { SaveState } from "@/components/wizard/use-autosave";
  */
 
 const inputClass =
-  "w-full rounded-md border border-input bg-card px-3 py-2.5 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "w-full rounded-md border border-input bg-card px-3 py-2.5 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
@@ -162,7 +162,7 @@ export function RadioField({
             key={o.value}
             className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors duration-200 ${
               value === o.value
-                ? "border-primary bg-primary/10 font-medium"
+                ? "border-primary bg-muted font-medium"
                 : "border-border hover:bg-muted"
             }`}
           >

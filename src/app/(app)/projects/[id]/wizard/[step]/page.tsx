@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -90,57 +91,103 @@ export default async function WizardStepPage({ params }: PageProps<"/projects/[i
         .map((sec) => ({ id: sec.id, title: sec.title, number: s(sec.number) })),
     }));
 
-  return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:px-8">
-      <div className="mb-8">
-        <Link href="/dashboard" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-          ← Back to my projects
-        </Link>
-        <h1 className="mt-4 text-3xl font-semibold">{detail.title}</h1>
+  /**
+   * Whether each step has anything recorded against it.
+   *
+   * Derived from the data already loaded rather than stored as a flag, so the
+   * rail cannot claim a step is done after its content has been cleared. It
+   * marks "has something", never "is correct" — every field is optional, so
+   * there is no such thing as an invalid step.
+   */
+  const anyOf = (...values: Array<string | null | undefined>) =>
+    values.some((value) => (value ?? "").trim().length > 0);
 
-        <div className="mt-5">
-          <div className="flex items-baseline justify-between gap-4 text-sm">
+  const stepHasContent: Record<number, boolean> = {
+    1: anyOf(
+      detail.institution?.institution,
+      detail.institution?.faculty,
+      detail.institution?.department,
+      detail.institution?.programme,
+    ),
+    2: anyOf(detail.projectType, detail.projectTypeCustom),
+    3: anyOf(detail.topic, detail.researchArea, detail.description),
+    4: anyOf(r?.researchProblem, r?.aim, r?.researchDesign) || (r?.objectives.length ?? 0) > 0,
+    5: Object.keys((detail.methodology?.data as Record<string, unknown>) ?? {}).length > 0,
+    6: documents.length > 0,
+    7: anyOf(bySource("STUDENT"), bySource("SUPERVISOR"), bySource("DEPARTMENT")),
+    8: anyOf(f?.citationStyle, f?.font, f?.lineSpacing, f?.margins),
+    9: chapters.length > 0,
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
+      <header className="mb-8">
+        <p className="text-sm text-muted-foreground">Project setup</p>
+        <h1 className="mt-1 text-3xl font-semibold">{detail.title}</h1>
+
+        <div className="mt-6 rounded-xl border border-border bg-card p-4 elevated-1 sm:p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <span className="font-medium">
-              Project Setup — Step {step} of {TOTAL_WIZARD_STEPS}: {meta.label}
+              Step {step} of {TOTAL_WIZARD_STEPS} — {meta.label}
             </span>
-            <span className="text-muted-foreground">{detail.completionPct}%</span>
+            <span className="tabular text-sm text-muted-foreground">
+              {detail.completionPct}% complete
+            </span>
           </div>
+
           <div
             role="progressbar"
             aria-valuenow={detail.completionPct}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Project setup progress"
-            className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted"
           >
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              className="h-full rounded-full bg-accent transition-[width] duration-500"
               style={{ width: `${detail.completionPct}%` }}
             />
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Every field is optional. Your answers save as you type, so you can leave and come back.
+
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Every field is optional. Your answers save as you type, so you can leave and come
+            back.
           </p>
         </div>
 
-        <nav aria-label="Setup steps" className="mt-5 flex flex-wrap gap-1.5">
-          {WIZARD_STEPS.map((entry) => (
-            <Link
-              key={entry.step}
-              href={`/projects/${id}/wizard/${entry.step}`}
-              aria-current={entry.step === step ? "step" : undefined}
-              className={`rounded-md border px-2.5 py-1 text-sm transition-colors duration-200 ${
-                entry.step === step
-                  ? "border-primary bg-primary/10 font-medium"
-                  : "border-border text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              <span className="tabular-nums">{entry.step}</span>
-              <span className="ml-1.5 hidden sm:inline">{entry.label}</span>
-            </Link>
-          ))}
+        <nav aria-label="Setup steps" className="mt-4">
+          <ol className="flex flex-wrap gap-1.5">
+            {WIZARD_STEPS.map((entry) => {
+              const current = entry.step === step;
+              const filled = stepHasContent[entry.step] ?? false;
+              return (
+                <li key={entry.step}>
+                  <Link
+                    href={`/projects/${id}/wizard/${entry.step}`}
+                    aria-current={current ? "step" : undefined}
+                    title={`Step ${entry.step}: ${entry.label}${filled ? " — has content" : ""}`}
+                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors duration-150 ${
+                      current
+                        ? "border-primary bg-muted font-medium text-foreground"
+                        : "border-border text-muted-foreground hover:border-border-strong hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    {filled && !current ? (
+                      <Check className="size-3.5 text-success" aria-hidden="true" />
+                    ) : (
+                      <span className="tabular text-xs">{entry.step}</span>
+                    )}
+                    <span className="hidden sm:inline">{entry.label}</span>
+                    <span className="sr-only">
+                      {filled ? "has content" : "not started"}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
         </nav>
-      </div>
+      </header>
 
       {step === 1 ? (
         <InstitutionStep
@@ -257,7 +304,7 @@ export default async function WizardStepPage({ params }: PageProps<"/projects/[i
 
       {step === 9 ? <StructureStep projectId={id} initial={chapters} /> : null}
 
-      <nav className="mt-10 flex items-center justify-between gap-3 border-t border-border pt-6">
+      <nav className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
         {step > 1 ? (
           <Button asChild variant="outline">
             <Link href={`/projects/${id}/wizard/${step - 1}`}>Back</Link>

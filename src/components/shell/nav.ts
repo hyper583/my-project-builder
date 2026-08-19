@@ -1,6 +1,6 @@
 import {
-  FileText,
   LayoutDashboard,
+  ListChecks,
   Settings,
   SquarePen,
   Telescope,
@@ -30,11 +30,17 @@ export const GLOBAL_NAV: readonly NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-/** Shown only while a project is open, scoped to that project. */
+/**
+ * Shown only while a project is open, scoped to that project.
+ *
+ * `/projects/[id]` is deliberately absent: it is a redirect that sends you to
+ * whichever of these three you belong on, so as a nav entry it would appear to
+ * do nothing from wherever you already were.
+ */
 export function projectNav(projectId: string): readonly NavItem[] {
   const base = `/projects/${projectId}`;
   return [
-    { href: base, label: "Overview", icon: FileText },
+    { href: `${base}/wizard/1`, label: "Setup", icon: ListChecks, match: `${base}/wizard` },
     { href: `${base}/blueprint`, label: "Blueprint", icon: Telescope },
     { href: `${base}/workspace`, label: "Workspace", icon: SquarePen },
   ];

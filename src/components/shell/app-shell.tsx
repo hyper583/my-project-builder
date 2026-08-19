@@ -257,16 +257,9 @@ function Sidebar({
               This project
             </p>
             <ul className="space-y-0.5">
-              {projectItems.map((item, index) => (
+              {projectItems.map((item) => (
                 <li key={item.href}>
-                  <NavLink
-                    item={item}
-                    pathname={pathname}
-                    collapsed={collapsed}
-                    // Only "Overview" is an index route; matching it as a
-                    // prefix would keep it lit on every child page.
-                    exact={index === 0}
-                  />
+                  <NavLink item={item} pathname={pathname} collapsed={collapsed} exact={false} />
                 </li>
               ))}
             </ul>

@@ -18,6 +18,7 @@ import {
   Loader2,
   Redo2,
   Table as TableIcon,
+  TriangleAlert,
   Underline as UnderlineIcon,
   Undo2,
 } from "lucide-react";
@@ -76,7 +77,7 @@ function ToolbarButton({
       title={label}
       className={`flex size-9 cursor-pointer items-center justify-center rounded-md border transition-colors duration-200 disabled:pointer-events-none disabled:opacity-40 ${
         active
-          ? "border-primary bg-primary/10 text-foreground"
+          ? "border-primary bg-muted text-foreground"
           : "border-border text-muted-foreground hover:bg-muted"
       }`}
     >
@@ -87,7 +88,7 @@ function ToolbarButton({
 
 function Toolbar({ editor }: { editor: Editor }) {
   return (
-    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1.5 border-b border-border bg-card px-4 py-2">
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b border-border bg-surface/95 px-4 py-2 backdrop-blur-sm">
       <ToolbarButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
         <Bold className="size-4" aria-hidden="true" />
       </ToolbarButton>
@@ -181,11 +182,11 @@ function SaveIndicator({ state, words }: { state: SaveState; words: number }) {
   }[state];
 
   return (
-    <div className="flex items-center justify-between border-t border-border px-4 py-2 text-sm text-muted-foreground">
+    <div className="flex items-center justify-between border-t border-border bg-surface px-5 py-2 text-sm text-muted-foreground">
       <span aria-live="polite" className={`flex min-h-5 items-center gap-1.5 ${state === "error" || state === "offline" ? "text-destructive" : ""}`}>
         {label}
       </span>
-      <span className="tabular-nums">{words} words</span>
+      <span className="tabular">{words.toLocaleString()} words</span>
     </div>
   );
 }
@@ -197,7 +198,14 @@ export function SectionEditor({
   onReady,
 }: {
   projectId: string;
-  section: { id: string; number: string | null; title: string; content: string | null };
+  section: {
+    id: string;
+    number: string | null;
+    title: string;
+    content: string | null;
+    /** Unresolved [STUDENT DATA REQUIRED] markers, surfaced in the header. */
+    placeholders: number;
+  };
   /** Lets the assistant panel act on whatever the student has highlighted. */
   onSelectionChange?: (selection: string) => void;
   /** Hands the editor instance up so the assistant can apply a revision. */
@@ -318,11 +326,19 @@ export function SectionEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-border px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border bg-surface px-5 py-3.5">
         <h1 className="font-serif text-2xl font-semibold">
-          {section.number ? `${section.number} ` : ""}
+          {section.number ? (
+            <span className="tabular mr-2 text-muted-foreground">{section.number}</span>
+          ) : null}
           {section.title}
         </h1>
+        {section.placeholders > 0 ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-warning-subtle px-2.5 py-0.5 text-xs font-medium text-warning">
+            <TriangleAlert className="size-3" aria-hidden="true" />
+            {section.placeholders} needing your data
+          </span>
+        ) : null}
       </div>
       <Toolbar editor={editor} />
       <div className="min-h-0 flex-1 overflow-y-auto">

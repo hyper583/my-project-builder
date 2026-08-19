@@ -109,7 +109,7 @@ const renumber = (c: StructureChapter, index: number): StructureChapter => ({
 });
 
 const inputClass =
-  "w-full rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "w-full rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 function IconButton({
   label,
@@ -177,7 +177,7 @@ export function StructureStep({
         you rename or move a section.
       </StepIntro>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-4 elevated-1">
         <span className="mr-1 text-sm font-medium">Start from:</span>
         {[3, 4, 5].map((n) => (
           <Button key={n} variant="outline" size="sm" onClick={() => update(template(n))}>
@@ -199,7 +199,7 @@ export function StructureStep({
 
       <ol className="space-y-4">
         {chapters.map((chapter, ci) => (
-          <li key={chapter.id ?? `c-${ci}`} className="rounded-lg border border-border bg-card p-5">
+          <li key={chapter.id ?? `c-${ci}`} className="rounded-xl border border-border bg-card p-5 elevated-1">
             <div className="flex items-start gap-2">
               <div className="grid w-20 shrink-0 gap-1">
                 <label className="sr-only" htmlFor={`ch-num-${ci}`}>

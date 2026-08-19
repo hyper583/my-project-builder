@@ -112,7 +112,7 @@ export function GenerationPanel({
   const isRunning = watching || progress?.status === "RUNNING" || progress?.status === "QUEUED";
 
   return (
-    <section className="rounded-lg border border-border bg-card p-6">
+    <section className="rounded-xl border border-border bg-card p-6 elevated-1">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold">Generate project</h2>
@@ -173,7 +173,7 @@ export function GenerationPanel({
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <p role="alert" className="mt-4 rounded-md border border-destructive/35 bg-destructive-subtle p-3 text-sm text-destructive">
           {error}
         </p>
       ) : null}
