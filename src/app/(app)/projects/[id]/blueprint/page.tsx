@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { AlertCircle, PencilLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DemoBanner } from "@/components/demo/demo-banner";
+import { resolveExportPolicy } from "@/server/services/export/policy";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { isAiConfigured } from "@/lib/env";
 import { requireProject } from "@/server/dal/projects";
@@ -64,7 +66,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default async function BlueprintPage({ params }: PageProps<"/projects/[id]/blueprint">) {
   const { id } = await params;
-  await requireProject(id);
+  const { user } = await requireProject(id);
 
   const p = await prisma.project.findUnique({
     where: { id },
@@ -84,6 +86,13 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
   const r = p.research;
   const f = p.formatting;
   const chapters = p.sections.filter((s) => s.parentId === null);
+  // The same resolver the export pipeline uses, so what the banner promises and
+  // what an export actually does cannot drift apart.
+  const exportPolicy = resolveExportPolicy(
+    { id: user.id, role: user.role, planTier: user.planTier },
+    { id: p.id, kind: p.kind, ownerId: p.userId },
+  );
+
   const methodologyForm = METHODOLOGY_FORMS[methodologyKeyFor(p.projectType)];
   const methodologyData = (p.methodology?.data ?? {}) as Record<string, string | string[]>;
   const answeredMethodology = methodologyForm.fields.filter((field) => {
@@ -103,6 +112,12 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
         <span className="italic">{MISSING}</span> is simply left blank, never filled in with a
         guess. Select any label to go back and change it.
       </p>
+
+      {p.kind === "DEMO" ? (
+        <div className="mt-6">
+          <DemoBanner projectId={id} canExport={exportPolicy.allowed} />
+        </div>
+      ) : null}
 
       <div className="mt-8 space-y-5">
         <Section title="Institution">

@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  assertDisclaimer,
+  resolveExportPolicy,
+  type ExportActor,
+  type ExportTarget,
+} from "@/server/services/export/policy";
+
+/**
+ * The demo export matrix.
+ *
+ * This is the rule the whole demo design rests on, so it is tested at the
+ * server layer where it actually has to hold — not through the UI, which can
+ * only ever hide a button.
+ */
+
+const freeStudent: ExportActor = { id: "user-1", role: "STUDENT", planTier: "FREE" };
+const paidStudent: ExportActor = { id: "user-1", role: "STUDENT", planTier: "PAID" };
+const admin: ExportActor = { id: "admin-1", role: "ADMIN", planTier: "FREE" };
+
+const demoProject: ExportTarget = { id: "p-demo", kind: "DEMO", ownerId: "user-1" };
+const realProject: ExportTarget = { id: "p-real", kind: "REAL", ownerId: "user-1" };
+const someoneElses: ExportTarget = { id: "p-other", kind: "REAL", ownerId: "user-2" };
+
+describe("resolveExportPolicy — demo matrix", () => {
+  it("blocks a free student from exporting a demo", () => {
+    const policy = resolveExportPolicy(freeStudent, demoProject);
+    expect(policy.allowed).toBe(false);
+    if (!policy.allowed) expect(policy.reason).toBe("DEMO_REQUIRES_PAID_PLAN");
+  });
+
+  it("allows a paid student, but always with the disclaimer", () => {
+    const policy = resolveExportPolicy(paidStudent, demoProject);
+    expect(policy.allowed).toBe(true);
+    if (policy.allowed) {
+      expect(policy.disclaimer).toBe(true);
+      expect(policy.requiresAudit).toBe(false);
+    }
+  });
+
+  it("allows an admin a clean export, and flags it for audit", () => {
+    const policy = resolveExportPolicy(admin, demoProject);
+    expect(policy.allowed).toBe(true);
+    if (policy.allowed) {
+      expect(policy.disclaimer).toBe(false);
+      expect(policy.requiresAudit).toBe(true);
+    }
+  });
+
+  it("never requires a disclaimer on a real project", () => {
+    for (const actor of [freeStudent, paidStudent, admin]) {
+      const policy = resolveExportPolicy(actor, realProject);
+      expect(policy.allowed).toBe(true);
+      if (policy.allowed) expect(policy.disclaimer).toBe(false);
+    }
+  });
+});
+
+describe("resolveExportPolicy — ownership", () => {
+  it("refuses a non-admin exporting someone else's project", () => {
+    const policy = resolveExportPolicy(paidStudent, someoneElses);
+    expect(policy.allowed).toBe(false);
+    if (!policy.allowed) expect(policy.reason).toBe("NOT_OWNER");
+  });
+
+  it("does not let ownership be bypassed by a paid plan", () => {
+    const demoOfAnother: ExportTarget = { id: "p-x", kind: "DEMO", ownerId: "user-2" };
+    const policy = resolveExportPolicy(paidStudent, demoOfAnother);
+    expect(policy.allowed).toBe(false);
+    if (!policy.allowed) expect(policy.reason).toBe("NOT_OWNER");
+  });
+});
+
+describe("assertDisclaimer — the renderer guard", () => {
+  it("throws if a renderer omits a required disclaimer", () => {
+    const policy = resolveExportPolicy(paidStudent, demoProject);
+    expect(() => assertDisclaimer(policy, false)).toThrowError(/without its disclaimer/i);
+  });
+
+  it("passes when the renderer drew it", () => {
+    const policy = resolveExportPolicy(paidStudent, demoProject);
+    expect(() => assertDisclaimer(policy, true)).not.toThrow();
+  });
+
+  it("passes for an admin clean export, which needs none", () => {
+    const policy = resolveExportPolicy(admin, demoProject);
+    expect(() => assertDisclaimer(policy, false)).not.toThrow();
+  });
+
+  it("refuses to be called for a disallowed export", () => {
+    const policy = resolveExportPolicy(freeStudent, demoProject);
+    expect(() => assertDisclaimer(policy, true)).toThrowError(/was not allowed/i);
+  });
+});

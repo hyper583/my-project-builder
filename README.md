@@ -127,6 +127,7 @@ state rather than fabricating output.
 ## Scripts
 
 ```bash
+npm run verify       # lint + typecheck + tests + build (run before committing)
 npm run dev          # development server
 npm run build        # production build
 npm run typecheck    # tsc --noEmit
@@ -134,7 +135,24 @@ npm run lint         # eslint
 npm run db:migrate   # prisma migrate dev
 npm run db:seed      # reference data
 npm run db:studio    # browse the database
+npm test             # all tests
+npm run test:unit    # unit tests only (no database needed)
 ```
+
+### Running the tests
+
+Unit tests need nothing. Integration tests need an isolated database — they
+truncate tables, so they refuse to run against anything not named `*_test`, and
+refuse outright to run against Supabase:
+
+```bash
+npx prisma dev --name mpb --detach     # local Postgres, no Docker
+```
+
+Then create a `mpb_test` database on it, apply migrations, and put the URL in
+`.env.test` as `TEST_DATABASE_URL`. Point it at the `mpb_test` database, never
+at `template1` — Postgres copies `template1` to build Prisma's shadow database,
+and migrations then fail with `type "UserRole" already exists`.
 
 ## Demo projects and academic integrity
 
@@ -159,6 +177,17 @@ The disclaimer is a property of the resolved policy rather than of a template, s
 fails to draw it produces a failed export rather than a silently clean file.
 
 Plan entitlements live in `src/config/plans.ts`. Pricing is never hard-coded into feature logic.
+
+**`kind` is immutable at the database level.** A trigger (migration
+`20260819100000_project_kind_immutable`) raises on any attempt to change it, so
+a demo full of illustrative figures can never be reclassified as real work — by
+this app, a future admin tool, a migration script, or someone at a psql prompt.
+
+**Converting a sample to a real project creates a new project.** It carries the
+chapter structure and formatting preferences only. The sample's research data
+and its written prose are deliberately not copied — they describe a study that
+is not the student's — and every section arrives with a tracked
+`SectionPlaceholder` saying what it still needs.
 
 ## Security notes
 
