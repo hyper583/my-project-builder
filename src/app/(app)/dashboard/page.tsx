@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CircleCheck, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
 
+import { CountUp } from "@/components/motion/count-up";
 import { ProjectList, type ProjectCardData } from "@/components/dashboard/project-list";
 import { entitlementsFor } from "@/config/plans";
 import { listProjects } from "@/server/dal/projects";
@@ -130,7 +131,9 @@ function Stat({
         {label}
       </dt>
       <dd className="mt-2">
-        <span className="tabular font-serif text-3xl leading-none font-semibold">{value}</span>
+        <span className="tabular font-serif text-3xl leading-none font-semibold">
+          <CountUp value={value} />
+        </span>
         <span className="mt-1.5 block text-xs text-subtle-foreground">{detail}</span>
       </dd>
     </div>

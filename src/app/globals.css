@@ -354,6 +354,71 @@ table th {
   box-shadow: var(--elevation-4), inset 0 1px 0 0 var(--hairline);
 }
 
+/* ------------------------------------------------------------
+   Motion
+
+   Entrances are sequenced rather than simultaneous, which is what reads as
+   engineered rather than merely animated. Nothing here loops: an infinite
+   animation belongs to a loading indicator, never to decoration.
+
+   Every rule below is switched off wholesale by the reduced-motion block
+   further down, which renders the final state immediately.
+   ------------------------------------------------------------ */
+
+/* Revealed on scroll. Starts hidden and is released by an observer. */
+.reveal {
+  opacity: 0;
+  translate: 0 12px;
+  transition:
+    opacity 380ms var(--ease-out),
+    translate 380ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/*
+ * A rule that draws itself out from nothing. The Swiss signature, in motion.
+ *
+ * Scoped to `.reveal` deliberately: a rule outside a revealed container is
+ * left at full width rather than collapsed to nothing. Anything that hides
+ * itself waiting to be released must be released by something that is
+ * definitely present, or it simply never appears.
+ */
+.reveal .draw-rule {
+  transform-origin: left center;
+  scale: 0 1;
+  transition: scale 500ms var(--ease-out);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible .draw-rule {
+  scale: 1 1;
+}
+
+/*
+ * Pressable surfaces. The shadow deepens on hover and settles back on press,
+ * so a click feels like the surface actually moved rather than merely
+ * changing colour.
+ */
+.press {
+  transition:
+    box-shadow var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.press:hover {
+  box-shadow: var(--elevation-2), inset 0 1px 0 0 var(--hairline);
+}
+
+.press:active {
+  box-shadow: var(--elevation-1), inset 0 1px 0 0 var(--hairline);
+}
+
 /* Visible focus for keyboard users — never removed. */
 :focus-visible {
   outline: 2px solid var(--ring);
@@ -387,6 +452,19 @@ table th {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /*
+   * Critical: without this, content that waits for an observer would stay
+   * invisible forever for anyone who has asked for less motion.
+   */
+  .reveal {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+
+  .reveal .draw-rule {
+    scale: 1 1 !important;
   }
 }
 

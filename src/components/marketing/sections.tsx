@@ -10,6 +10,7 @@ import {
   Upload,
 } from "lucide-react";
 
+import { Reveal } from "@/components/motion/reveal";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -37,7 +38,7 @@ function Eyebrow({ index, children }: { index: string; children: React.ReactNode
   return (
     <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
       <span className="tabular text-accent">{index}</span>
-      <span aria-hidden="true" className="h-px w-8 bg-border-strong" />
+      <span aria-hidden="true" className="draw-rule h-px w-8 bg-border-strong" />
       <span className="text-muted-foreground">{children}</span>
     </p>
   );
@@ -55,13 +56,13 @@ function SectionHeading({
   lead?: string;
 }) {
   return (
-    <div className="max-w-2xl">
+    <Reveal className="max-w-2xl">
       <Eyebrow index={index}>{eyebrow}</Eyebrow>
       <h2 className="mt-5 text-3xl font-semibold sm:text-[2.6rem] sm:leading-[1.1]">{title}</h2>
       {lead ? (
         <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{lead}</p>
       ) : null}
-    </div>
+    </Reveal>
   );
 }
 
@@ -70,50 +71,61 @@ function SectionHeading({
 export function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-border">
-      {/*
-        A single hairline rule marking the grid, rather than a gradient or an
-        orb. It states that the page is built on a system.
-      */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px -translate-x-1/2 bg-border lg:block"
-      />
-
       <Container className="relative py-16 sm:py-24 lg:py-28">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-7">
-            <Eyebrow index="01">For final year projects, theses and dissertations</Eyebrow>
+            <Reveal>
+              <Eyebrow index="01">For final year projects, theses and dissertations</Eyebrow>
+            </Reveal>
 
-            <h1 className="mt-6 text-[2.6rem] leading-[1.05] font-semibold sm:text-6xl lg:text-[4.1rem]">
-              Build your academic project from the ground up.
-            </h1>
+            <Reveal delay={80}>
+              <h1 className="mt-6 text-[2.6rem] leading-[1.05] font-semibold sm:text-6xl lg:text-[4.1rem]">
+                Build your academic project from the ground up.
+              </h1>
+            </Reveal>
 
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Give us your topic, department, research details, requirements and existing
-              materials. My Project Builder turns your information into an organised, editable
-              academic project workspace.
-            </p>
+            <Reveal delay={160}>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+                Give us your topic, department, research details, requirements and existing
+                materials. My Project Builder turns your information into an organised, editable
+                academic project workspace.
+              </p>
+            </Reveal>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link href="/register">
-                  Build My Project
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="#how-it-works">See how it works</Link>
-              </Button>
-            </div>
+            <Reveal delay={240}>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/register">
+                    Build My Project
+                    <ArrowRight
+                      className="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="#how-it-works">See how it works</Link>
+                </Button>
+              </div>
+            </Reveal>
 
-            <p className="mt-7 border-l-2 border-accent pl-4 text-sm leading-relaxed text-muted-foreground">
-              Your project is built around the information you provide — not from a topic alone.
-              Results, participants and findings are never invented.
-            </p>
+            <Reveal delay={320}>
+              <p className="mt-7 border-l-2 border-accent pl-4 text-sm leading-relaxed text-muted-foreground">
+                Your project is built around the information you provide — not from a topic
+                alone. Results, participants and findings are never invented.
+              </p>
+            </Reveal>
           </div>
 
-          <div className="lg:col-span-5">
-            <StructureFigure />
+          {/*
+            The grid line sits on the column boundary rather than at 50% of the
+            section. Centred, it cut straight through the headline, which spans
+            seven of twelve columns.
+          */}
+          <div className="lg:col-span-5 lg:border-l lg:border-border lg:pl-10">
+            <Reveal delay={200}>
+              <StructureFigure />
+            </Reveal>
           </div>
         </div>
       </Container>
@@ -214,7 +226,7 @@ export function HowItWorks() {
 
         <ol className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((step, i) => (
-            <li key={step.title} className="border-t border-border pt-5">
+            <Reveal as="li" key={step.title} delay={i * 60} className="border-t border-border pt-5">
               <span
                 className="tabular font-serif text-3xl leading-none text-accent"
                 aria-hidden="true"
@@ -223,7 +235,7 @@ export function HowItWorks() {
               </span>
               <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
               <p className="mt-2 leading-relaxed text-muted-foreground">{step.body}</p>
-            </li>
+            </Reveal>
           ))}
         </ol>
       </Container>
@@ -278,20 +290,19 @@ export function Capabilities() {
         />
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2">
-          {CAPABILITIES.map(({ icon: Icon, title, body }) => (
-            <article
-              key={title}
-              className="group rounded-xl border border-border bg-card p-6 transition-[box-shadow,border-color,translate] duration-200 elevated-1 hover:-translate-y-0.5 hover:border-border-strong hover:elevated-3"
-            >
+          {CAPABILITIES.map(({ icon: Icon, title, body }, i) => (
+            <Reveal as="article" key={title} delay={i * 60}>
+              <div className="group h-full rounded-xl border border-border bg-card p-6 transition-[box-shadow,border-color,translate] duration-200 elevated-1 hover:-translate-y-0.5 hover:border-border-strong hover:elevated-3">
               <span className="flex size-10 items-center justify-center rounded-lg bg-muted transition-colors duration-200 group-hover:bg-accent-subtle">
                 <Icon
                   className="size-5 text-primary transition-colors duration-200 group-hover:text-accent"
                   aria-hidden="true"
                 />
               </span>
-              <h3 className="mt-4 text-xl font-semibold">{title}</h3>
-              <p className="mt-2 leading-relaxed text-muted-foreground">{body}</p>
-            </article>
+                <h3 className="mt-4 text-xl font-semibold">{title}</h3>
+                <p className="mt-2 leading-relaxed text-muted-foreground">{body}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </Container>
@@ -436,7 +447,10 @@ export function FinalCta() {
               <Button asChild size="lg" variant="accent">
                 <Link href="/register">
                   Build My Project
-                  <ArrowRight className="size-4" aria-hidden="true" />
+                  <ArrowRight
+                    className="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
                 </Link>
               </Button>
               <Button
