@@ -327,12 +327,17 @@ export function SectionEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border bg-surface px-5 py-3.5">
-        <h1 className="font-serif text-2xl font-semibold">
+        {/*
+          h2, not h1: the workspace header already carries the project title as
+          the page heading, and a section is a level below it. Two h1s on one
+          page leaves a screen reader with no single answer to "what is this?".
+        */}
+        <h2 className="font-serif text-2xl font-semibold">
           {section.number ? (
             <span className="tabular mr-2 text-muted-foreground">{section.number}</span>
           ) : null}
           {section.title}
-        </h1>
+        </h2>
         {section.placeholders > 0 ? (
           <span className="flex items-center gap-1.5 rounded-full bg-warning-subtle px-2.5 py-0.5 text-xs font-medium text-warning">
             <TriangleAlert className="size-3" aria-hidden="true" />
