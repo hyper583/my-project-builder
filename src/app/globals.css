@@ -291,31 +291,39 @@
    BASE
    ============================================================ */
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-synthesis-weight: none;
-}
-
 /*
- * Headings carry the academic character. Optical sizing and tight tracking
- * keep a large serif from reading as decorative.
+ * Element defaults live in `@layer base` so that a utility can override them.
+ * Unlayered CSS beats every layered rule regardless of specificity, so a bare
+ * `h2 { color: … }` here would silently defeat `text-on-ink` on the ink panels
+ * and render a near-black heading on navy. Layer membership is load-bearing.
  */
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
-  color: var(--foreground);
-  text-wrap: balance;
-  letter-spacing: -0.015em;
-}
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis-weight: none;
+  }
 
-p {
-  text-wrap: pretty;
+  /*
+   * Headings carry the academic character. Tight tracking keeps a large serif
+   * from reading as decorative.
+   */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
+    color: var(--foreground);
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
 }
 
 /* Figures line up in columns wherever they are compared. */
