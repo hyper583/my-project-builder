@@ -36,7 +36,13 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         aria-describedby={hint ? `${id}-hint` : undefined}
-        className="h-11 w-full rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={[
+          "h-11 w-full rounded-md border border-input bg-card px-3 text-base",
+          "transition-[border-color,box-shadow] duration-150",
+          "placeholder:text-subtle-foreground",
+          "hover:border-border-strong",
+          "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+        ].join(" ")}
       />
       {hint ? (
         <p id={`${id}-hint`} className="text-sm text-muted-foreground">
@@ -51,7 +57,7 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+      className="flex items-start gap-2.5 rounded-md border border-destructive/35 bg-destructive-subtle p-3 text-sm text-destructive"
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <span>{message}</span>

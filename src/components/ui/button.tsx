@@ -5,22 +5,35 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  // Min height 44px on the default size keeps touch targets accessible.
-  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+  // `active:translate-y-px` gives a press a physical response. It is the one
+  // piece of motion here that carries meaning rather than decoration.
+  [
+    "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap",
+    "rounded-md text-sm font-medium",
+    "transition-[background-color,border-color,color,box-shadow,translate] duration-150",
+    "active:translate-y-px",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    "disabled:pointer-events-none disabled:opacity-45 disabled:active:translate-y-0",
+  ].join(" "),
   {
     variants: {
       variant: {
-        primary: "bg-primary text-on-primary hover:bg-primary/90",
-        accent: "bg-accent text-on-accent hover:bg-accent/90",
-        outline: "border border-border bg-card text-foreground hover:bg-muted",
-        ghost: "text-foreground hover:bg-muted",
-        destructive: "bg-destructive text-on-destructive hover:bg-destructive/90",
+        primary: "bg-primary text-on-primary elevated-1 hover:bg-primary-hover",
+        accent: "bg-accent text-on-accent elevated-1 hover:bg-accent-hover",
+        outline:
+          "border border-border bg-card text-foreground hover:border-border-strong hover:bg-muted",
+        subtle: "bg-muted text-foreground hover:bg-surface-sunken",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
+        destructive: "bg-destructive text-on-destructive elevated-1 hover:opacity-90",
       },
       size: {
+        // 44px on md and icon keeps the primary touch targets accessible;
+        // sm is for dense toolbars that sit alongside other controls.
         sm: "h-9 px-3",
         md: "h-11 px-5",
         lg: "h-12 px-7 text-base",
         icon: "h-11 w-11",
+        "icon-sm": "h-9 w-9",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },
