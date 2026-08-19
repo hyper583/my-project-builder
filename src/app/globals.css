@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/*
+ * My Project Builder — design tokens
+ *
+ * Institutional navy + research accent + serif headings. The product should
+ * read as serious academic software, so the palette stays restrained and the
+ * hierarchy is carried by typography and spacing rather than by colour.
+ *
+ * Every colour is defined here as a semantic token. Components reference the
+ * token, never a raw hex value.
+ */
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+
+  --primary: #1e3a5f;
+  --on-primary: #ffffff;
+
+  --secondary: #2563eb;
+  --on-secondary: #ffffff;
+
+  --accent: #a16207;
+  --on-accent: #ffffff;
+
+  --muted: #e9eef5;
+  --muted-foreground: #475569;
+
+  --border: #cbd5e1;
+  --input: #cbd5e1;
+  --ring: #1e3a5f;
+
+  --destructive: #b91c1c;
+  --on-destructive: #ffffff;
+
+  --success: #15803d;
+  --warning: #a16207;
+
+  --radius: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b1220;
+    --foreground: #e6edf7;
+
+    --card: #111a2b;
+    --card-foreground: #e6edf7;
+
+    --primary: #93b4e3;
+    --on-primary: #0b1220;
+
+    --secondary: #60a5fa;
+    --on-secondary: #0b1220;
+
+    --accent: #d9a441;
+    --on-accent: #1a1204;
+
+    --muted: #1a2436;
+    --muted-foreground: #9fb0c9;
+
+    --border: #26334a;
+    --input: #26334a;
+    --ring: #93b4e3;
+
+    --destructive: #f87171;
+    --on-destructive: #1a0505;
+
+    --success: #4ade80;
+    --warning: #fbbf24;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-on-destructive: var(--on-destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings carry the academic character. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
+  color: var(--foreground);
+  text-wrap: balance;
+}
+
+/* Long-form prose sits at a comfortable measure. */
+p {
+  text-wrap: pretty;
+}
+
+/* Visible focus for keyboard users — never removed. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Respect reduced-motion: all non-essential motion is dropped. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Skip link, revealed on focus. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}

@@ -1,0 +1,859 @@
+// My Project Builder — database schema
+//
+// Prisma 7 notes (these differ from every pre-v7 tutorial):
+//   * provider is "prisma-client", NOT "prisma-client-js"
+//   * output is REQUIRED — the client is no longer emitted into node_modules
+//   * a driver adapter (@prisma/adapter-pg) is REQUIRED at runtime
+//   * import from the generated path ending in "/client"
+//
+// Migrations run against DIRECT_URL (see prisma.config.ts); the app runtime
+// uses DATABASE_URL, which may be the pooled connection.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// AUTH — tables owned by Better Auth, extended with our fields
+// ============================================================
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum PlanTier {
+  FREE
+  PAID
+}
+
+model User {
+  id            String  @id @default(cuid())
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false)
+  image         String?
+
+  // Extensions. role is never self-service: the first admin comes from
+  // ADMIN_BOOTSTRAP_EMAIL, and thereafter only an admin may promote another.
+  role        UserRole  @default(STUDENT)
+  planTier    PlanTier  @default(FREE)
+  suspendedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  projects      Project[]
+  exports       Export[]
+  usageRecords  UsageRecord[]
+  subscription  Subscription?
+  auditLogs     AuditLog[]
+  conversations AIConversation[]
+
+  @@index([role])
+  @@index([planTier])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  // Better Auth 1.7 scopes account identity by issuer.
+  issuer                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issuer, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ============================================================
+// PROJECT CORE
+// ============================================================
+
+enum ProjectStatus {
+  DRAFT
+  GENERATING
+  READY
+  ARCHIVED
+}
+
+/// REAL projects may never contain fabricated research data.
+/// DEMO projects deliberately may — see services/export/policy.ts for the
+/// disclaimer rules. `kind` is set at creation and never mutated.
+enum ProjectKind {
+  REAL
+  DEMO
+}
+
+enum TopicApproval {
+  YES
+  NO
+  UNSURE
+}
+
+model Project {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String
+  topic         String?
+  topicApproved TopicApproval @default(UNSURE)
+  researchArea  String?
+  keywords      String[]      @default([])
+  description   String?
+
+  status ProjectStatus @default(DRAFT)
+  kind   ProjectKind   @default(REAL)
+
+  projectType       String?
+  projectTypeCustom String?
+
+  // Wizard progress. wizardState holds transient UI state only — every
+  // answer of substance is normalised into the related tables below.
+  wizardStep    Int   @default(1)
+  completionPct Int   @default(0)
+  wizardState   Json?
+
+  lastGeneratedSection String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  institution    ProjectInstitution?
+  research       ProjectResearchDetails?
+  methodology    ProjectMethodology?
+  formatting     ProjectFormatting?
+  variables      ProjectVariable[]
+  instructions   ProjectInstruction[]
+  sections       ProjectSection[]
+  documents      ProjectDocument[]
+  sources        ProjectSource[]
+  references     ProjectReference[]
+  citations      ProjectCitation[]
+  versions       ProjectVersion[]
+  generationJobs GenerationJob[]
+  conversations  AIConversation[]
+  exports        Export[]
+
+  @@index([userId, deletedAt])
+  @@index([userId, status])
+  @@index([kind])
+  @@map("project")
+}
+
+model ProjectInstitution {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Free text so a custom value always works, with an optional link to a preset.
+  institution   String?
+  campus        String?
+  faculty       String?
+  department    String?
+  programme     String?
+  degree        String?
+  academicLevel String?
+
+  institutionId String?
+  facultyId     String?
+  departmentId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_institution")
+}
+
+model ProjectResearchDetails {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  researchProblem   String?
+  aim               String?
+  objectives        String[] @default([])
+  researchQuestions String[] @default([])
+  hypotheses        String[] @default([])
+
+  studyLocation     String?
+  targetPopulation  String?
+  samplePopulation  String?
+  sampleSize        String?
+  samplingTechnique String?
+  researchDesign    String?
+
+  dataCollectionMethod String?
+  researchInstruments  String?
+  dataAnalysisMethod   String?
+
+  theoreticalFramework String?
+  conceptualFramework  String?
+
+  limitations    String?
+  scope          String?
+  keyTerminology String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_research_details")
+}
+
+/// Per-project-type methodology. `data` is validated by a Zod schema chosen by
+/// `type`, so a new project type is a new schema rather than a migration.
+model ProjectMethodology {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  type String
+  data Json   @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_methodology")
+}
+
+enum VariableKind {
+  INDEPENDENT
+  DEPENDENT
+  OTHER
+}
+
+model ProjectVariable {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  kind        VariableKind
+  name        String
+  description String?
+  order       Int          @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, kind])
+  @@map("project_variable")
+}
+
+enum InstructionSource {
+  STUDENT
+  SUPERVISOR
+  DEPARTMENT
+}
+
+model ProjectInstruction {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  source  InstructionSource @default(STUDENT)
+  content String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@map("project_instruction")
+}
+
+model ProjectFormatting {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  citationStyle       String?
+  citationStyleCustom String?
+
+  font        String?
+  fontSize    String?
+  lineSpacing String?
+  paraSpacing String?
+  margins     String?
+
+  headingStyle       String?
+  pageNumbering      String?
+  chapterNumbering   String?
+  referenceFormat    String?
+  tableFormat        String?
+  figureFormat       String?
+  customInstructions String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_formatting")
+}
+
+enum SectionKind {
+  PRELIMINARY
+  CHAPTER
+  SECTION
+  REFERENCES
+  APPENDIX
+}
+
+/// Self-referencing tree. Drives navigation, reordering and export ordering.
+model ProjectSection {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   ProjectSection?  @relation("SectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children ProjectSection[] @relation("SectionTree")
+
+  kind    SectionKind @default(SECTION)
+  number  String?
+  title   String
+  content String?
+
+  order     Int @default(0)
+  wordCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  placeholders SectionPlaceholder[]
+  citations    ProjectCitation[]
+
+  @@index([projectId, parentId, order])
+  @@index([parentId])
+  @@map("project_section")
+}
+
+/// Tracked "[STUDENT DATA REQUIRED]" markers. Counting these is what makes
+/// missing real data measurable rather than a matter of trusting the prose.
+model SectionPlaceholder {
+  id        String         @id @default(cuid())
+  sectionId String
+  section   ProjectSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  label    String
+  detail   String?
+  resolved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([sectionId, resolved])
+  @@map("section_placeholder")
+}
+
+// ============================================================
+// DOCUMENTS & SOURCES
+// ============================================================
+
+enum ExtractionStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+  UNSUPPORTED
+}
+
+model ProjectDocument {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  filename     String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  storageKey   String
+  category     String?
+
+  createdAt DateTime @default(now())
+
+  extraction DocumentExtraction?
+  source     ProjectSource?
+
+  @@index([projectId])
+  @@map("project_document")
+}
+
+model DocumentExtraction {
+  id         String          @id @default(cuid())
+  documentId String          @unique
+  document   ProjectDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  status   ExtractionStatus @default(PENDING)
+  text     String?
+  metadata Json?
+  pages    Int?
+  error    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chunks DocumentChunk[]
+
+  @@map("document_extraction")
+}
+
+/// Chunked text for retrieval. Full-text search ships now; an `embedding
+/// vector(1536)` column can be added later without restructuring this table.
+model DocumentChunk {
+  id           String             @id @default(cuid())
+  extractionId String
+  extraction   DocumentExtraction @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+
+  order    Int
+  text     String
+  tokenEst Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([extractionId, order])
+  @@map("document_chunk")
+}
+
+enum SourceKind {
+  UPLOAD
+  REFERENCE
+  NOTE
+  SUPERVISOR_INSTRUCTION
+}
+
+model ProjectSource {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  kind  SourceKind
+  title String
+  notes String?
+
+  documentId String?          @unique
+  document   ProjectDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, kind])
+  @@map("project_source")
+}
+
+// ============================================================
+// REFERENCES & CITATIONS
+// ============================================================
+
+/// Publication details are never invented. Anything the system could not
+/// verify from supplied material is marked NEEDS_REVIEW rather than filled in.
+enum ReferenceVerification {
+  VERIFIED
+  NEEDS_REVIEW
+  USER_PROVIDED
+}
+
+model ProjectReference {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  authors     String[]  @default([])
+  year        String?
+  title       String
+  publication String?
+  publisher   String?
+  volume      String?
+  issue       String?
+  pages       String?
+  doi         String?
+  url         String?
+  accessedAt  DateTime?
+
+  raw          String?
+  verification ReferenceVerification @default(NEEDS_REVIEW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  citations ProjectCitation[]
+
+  @@index([projectId, verification])
+  @@map("project_reference")
+}
+
+model ProjectCitation {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  referenceId String
+  reference   ProjectReference @relation(fields: [referenceId], references: [id], onDelete: Cascade)
+
+  sectionId String?
+  section   ProjectSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  locator String?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([referenceId])
+  @@index([sectionId])
+  @@map("project_citation")
+}
+
+// ============================================================
+// GENERATION JOBS & VERSIONS
+// ============================================================
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+/// Claimed by the worker with FOR UPDATE SKIP LOCKED. Progress shown in the UI
+/// is read from these rows, so it always reflects real backend state.
+model GenerationJob {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  status      JobStatus @default(QUEUED)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+
+  lockedAt  DateTime?
+  lockedBy  String?
+  heartbeat DateTime?
+
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps GenerationStep[]
+
+  @@index([status, createdAt])
+  @@index([projectId])
+  @@map("generation_job")
+}
+
+model GenerationStep {
+  id    String        @id @default(cuid())
+  jobId String
+  job   GenerationJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  order  Int
+  key    String
+  label  String
+  status JobStatus @default(QUEUED)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+
+  @@unique([jobId, order])
+  @@map("generation_step")
+}
+
+model ProjectVersion {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  label    String
+  snapshot Json
+  number   Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, number])
+  @@index([projectId])
+  @@map("project_version")
+}
+
+// ============================================================
+// AI CONVERSATIONS
+// ============================================================
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model AIConversation {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages AIMessage[]
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("ai_conversation")
+}
+
+model AIMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  role    MessageRole
+  content String
+
+  inputTokens  Int?
+  outputTokens Int?
+  model        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("ai_message")
+}
+
+// ============================================================
+// OPS — exports, usage, billing, audit, rate limiting
+// ============================================================
+
+enum ExportFormat {
+  DOCX
+  PDF
+}
+
+enum ExportStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model Export {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  format ExportFormat
+  status ExportStatus @default(QUEUED)
+
+  /// Whether this export carried the demo disclaimer. Recorded so an admin
+  /// clean export is always distinguishable after the fact.
+  hadDisclaimer Boolean @default(false)
+
+  options    Json?
+  storageKey String?
+  error      String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([projectId])
+  @@index([userId, createdAt])
+  @@map("export")
+}
+
+enum UsageKind {
+  AI_GENERATION
+  AI_EDIT
+  EXPORT
+  UPLOAD_BYTES
+}
+
+model UsageRecord {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  kind      UsageKind
+  quantity  Int       @default(1)
+  projectId String?
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, kind, createdAt])
+  @@map("usage_record")
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tier       PlanTier @default(FREE)
+  status     String   @default("active")
+  provider   String?
+  externalId String?
+
+  currentPeriodEnd DateTime?
+  cancelledAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscription")
+}
+
+model AuditLog {
+  id     String  @id @default(cuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_log")
+}
+
+/// Fixed-window rate limiting. Postgres-backed so it works across instances
+/// without Redis.
+model RateLimit {
+  id          String   @id @default(cuid())
+  identity    String
+  bucket      String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@unique([identity, bucket, windowStart])
+  @@index([windowStart])
+  @@map("rate_limit")
+}
+
+// ============================================================
+// PRESETS (seeded — development seed data lives in prisma/seed)
+// ============================================================
+
+model Institution {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  country String?
+  city    String?
+
+  createdAt DateTime @default(now())
+
+  faculties Faculty[]
+
+  @@map("institution")
+}
+
+model Faculty {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  name String
+
+  departments Department[]
+
+  @@unique([institutionId, name])
+  @@map("faculty")
+}
+
+model Department {
+  id        String  @id @default(cuid())
+  facultyId String
+  faculty   Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+
+  name String
+
+  @@unique([facultyId, name])
+  @@map("department")
+}
+
+model ProjectTypeDef {
+  id             String  @id @default(cuid())
+  key            String  @unique
+  label          String
+  description    String?
+  methodologyKey String?
+  order          Int     @default(0)
+
+  @@map("project_type_def")
+}
+
+model CitationStyle {
+  id    String @id @default(cuid())
+  key   String @unique
+  label String
+  order Int    @default(0)
+
+  @@map("citation_style")
+}
+
+model FormattingPreset {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  label       String
+  description String?
+  values      Json
+
+  @@map("formatting_preset")
+}
