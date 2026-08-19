@@ -13,5 +13,10 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[id]"
   if (project.status === "DRAFT") {
     redirect(`/projects/${id}/wizard/${project.wizardStep || 1}`);
   }
+  // A generated project opens where the work now happens. The sample project
+  // stays on the blueprint, which is the view that explains what it is.
+  if (project.status === "READY" && project.kind === "REAL") {
+    redirect(`/projects/${id}/workspace`);
+  }
   redirect(`/projects/${id}/blueprint`);
 }
