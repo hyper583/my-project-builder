@@ -50,3 +50,10 @@ src/generated/
 # Vendored agent skills — reinstall with: npx skills add supabase/agent-skills
 .agents/
 .claude/skills/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/.playwright/
+.storage-e2e/
