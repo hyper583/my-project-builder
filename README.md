@@ -112,6 +112,13 @@ npm run dev
 | `MAX_UPLOAD_MB` | no | Defaults to 25 |
 | `EMAIL_DRIVER` | no | `console` (default) prints reset links to the server log |
 
+**Password reset works locally with no SMTP account.** Use "Forgot your password?" on the
+sign-in page; the console driver prints a genuine reset link to the `next dev` output. Open it
+to reach `/reset-password`. Links last an hour and are single-use, and an expired one is
+explained on arrival rather than after a new password has been typed twice. The confirmation
+screen is identical whether or not the address has an account, so the form cannot be used to
+discover which emails are registered.
+
 Environment is validated by Zod at boot (`src/lib/env.ts`), so a misconfiguration fails loudly at
 startup rather than confusingly at runtime.
 
@@ -221,8 +228,66 @@ though the password is correct.
 fails with `P1001: Can't reach database server` on port 5432 and succeeds on an immediate retry.
 Retry once before investigating.
 
-## Known issues
+## End-to-end tests
 
-`npm audit` reports a high-severity advisory in `deepmerge-ts`, reachable only through the Prisma
-**CLI** (`@prisma/config`), which is a dev dependency and is not shipped. The offered automatic fix
-downgrades to Prisma 6 and would undo the v7 architecture, so it has deliberately not been applied.
+```bash
+npm run test:e2e
+```
+
+Playwright drives the real application, so it registers users and creates projects. It therefore
+boots **its own** Next server on port 3100 against the isolated test database and never touches the
+one in `.env.local` — `playwright.config.ts` refuses to start if `TEST_DATABASE_URL` is missing,
+points at Supabase, or does not look like a test database.
+
+First-time setup:
+
+```bash
+npx prisma dev --name mpb --detach
+```
+
+Create `mpb_test`, set `TEST_DATABASE_URL` in `.env.test`, apply migrations, then seed the
+reference data the wizard needs:
+
+```bash
+DATABASE_URL="$TEST_DATABASE_URL" npx tsx prisma/seed/index.ts
+```
+
+The suite runs with `AI_PROVIDER=mock` and an empty API key, so it spends no credit and exercises
+the "AI not configured" state the brief requires.
+
+**`prisma dev` runs PGLite, a wasm build of Postgres that cannot serve concurrent connections.**
+Signing out alone fires several overlapping server requests, and with the default pool most fail
+with `ConnectionClosed` — measured at 5 of 20 concurrent queries succeeding, against 20 of 20 with
+a pool of one. The e2e config therefore sets `DATABASE_POOL_MAX=1`. This is a property of the local
+test engine, not of the application; leave the variable unset everywhere else.
+
+What the suite covers: registration, sign-out and sign-in; the dashboard refusing an
+unauthenticated visitor; a rejected password; password reset returning an identical confirmation
+for a known and an unknown address, so it cannot be used to discover which emails are registered;
+an expired reset link explained rather than shown as a form; wizard answers surviving a hard
+reload; the step rail reflecting what has actually been filled in; every field being skippable;
+the sample project being badged and carrying its disclaimer; a free student being unable to export
+it; the assistant reporting that AI is not configured instead of faking output; one `h1` per page
+in the workspace; theme choice persisting and `aria-pressed` agreeing with it; and no horizontal
+overflow at 375px.
+
+## Dependency notes
+
+`npm audit` reports **0 vulnerabilities**.
+
+An earlier note here claimed the `deepmerge-ts` advisory (GHSA-ggr8-5vv4-36mx, stack exhaustion on
+recursive object graphs) was confined to the Prisma **CLI** and therefore not shipped. That was
+wrong: `@prisma/client` depends on `prisma`, and `better-auth` reaches it through
+`@better-auth/prisma-adapter`, so `@prisma/config` — and with it `deepmerge-ts` — was present in a
+production install.
+
+`@prisma/config` pins `deepmerge-ts` to an exact `7.1.5`, so it is raised with an `overrides` entry
+in `package.json`:
+
+```json
+"overrides": { "deepmerge-ts": "^8.0.1" }
+```
+
+npm's own `audit fix --force` instead downgrades to Prisma 6, which would undo the v7 architecture.
+The override was verified rather than assumed: `prisma validate`, `prisma generate`, the full test
+suite and a production build all pass on 8.0.1. Revisit it when `@prisma/config` relaxes its pin.
