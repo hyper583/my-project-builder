@@ -6,8 +6,10 @@ import { PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { ExportPanel } from "@/components/export/export-panel";
+import { VersionHistory } from "@/components/versions/version-history";
 import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
+import { listVersions } from "@/server/services/versions";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { aiConfigured } from "@/server/services/ai";
 import { requireProject } from "@/server/dal/projects";
@@ -99,6 +101,18 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     where: { projectId: id, status: { in: ["QUEUED", "RUNNING"] } },
     select: { id: true },
   });
+
+  const versions = (await listVersions(id)).map((version) => ({
+    id: version.id,
+    number: version.number,
+    label: version.label,
+    createdAt: new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(version.createdAt),
+    sectionCount: version.sectionCount,
+    wordCount: version.wordCount,
+  }));
 
   // Counted here so the export panel can say what is still outstanding before
   // a student downloads a document with gaps in it.
@@ -260,6 +274,10 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
           />
         </div>
       )}
+
+      <div className="mt-8">
+        <VersionHistory projectId={id} versions={versions} />
+      </div>
 
       <div className="mt-8">
         <ExportPanel

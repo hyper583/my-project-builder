@@ -1,4 +1,6 @@
 import { prisma } from "@/server/db";
+import { syncPlaceholders } from "@/server/services/placeholders";
+import { createVersion } from "@/server/services/versions";
 import { SYSTEM_PROMPTS, ai } from "@/server/services/ai";
 import {
   completeJob,
@@ -21,30 +23,6 @@ import { buildProjectMemory } from "@/server/services/memory";
  * generation never lose completed sections is enforced here.
  */
 
-const PLACEHOLDER_PATTERN = /\[STUDENT DATA REQUIRED:\s*([^\]]+)\]/gi;
-
-/**
- * Records every placeholder the model emitted.
- *
- * This is what turns "the model said it needs your data" into something the
- * Project Health panel can count. Fabrication becomes measurable rather than a
- * matter of trusting the prose.
- */
-async function recordPlaceholders(sectionId: string, content: string): Promise<number> {
-  await prisma.sectionPlaceholder.deleteMany({ where: { sectionId, resolved: false } });
-
-  const detail = [...content.matchAll(PLACEHOLDER_PATTERN)].map((m) => m[1]!.trim());
-  if (detail.length === 0) return 0;
-
-  await prisma.sectionPlaceholder.createMany({
-    data: detail.map((text) => ({
-      sectionId,
-      label: "STUDENT DATA REQUIRED",
-      detail: text.slice(0, 500),
-    })),
-  });
-  return detail.length;
-}
 
 async function recordUsage(
   projectId: string,
@@ -74,7 +52,7 @@ async function writeSection(
     where: { id: sectionId },
     data: { content, wordCount: content.trim().split(/\s+/).filter(Boolean).length },
   });
-  await recordPlaceholders(sectionId, content);
+  await syncPlaceholders(sectionId, content);
 }
 
 /** Generates one subsection of a normal (non-results) chapter. */
@@ -166,6 +144,28 @@ export async function runGenerationJob(job: ClaimedJob): Promise<void> {
     where: { jobId: job.id },
     orderBy: { order: "asc" },
   });
+
+  /*
+   * Snapshot before writing anything.
+   *
+   * Generation overwrites section content, so a student who has already
+   * written something and then runs a generation would otherwise have no way
+   * back. Only on the first attempt: a retry resumes a run that has already
+   * taken its snapshot, and versioning again would bury the pre-generation
+   * state under near-identical entries.
+   *
+   * A failure here is logged rather than thrown — losing the safety net is bad,
+   * but refusing to generate because the safety net could not be written is
+   * worse for the student in front of the screen.
+   */
+  const isFirstAttempt = steps.every((step) => step.status !== "SUCCEEDED");
+  if (isFirstAttempt) {
+    try {
+      await createVersion(job.projectId, "Before generating");
+    } catch (error) {
+      console.error("[generation] could not snapshot before generating", error);
+    }
+  }
 
   try {
     for (const step of steps) {

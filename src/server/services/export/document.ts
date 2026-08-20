@@ -1,5 +1,7 @@
 import { parse, type HTMLElement, type Node } from "node-html-parser";
 
+import { PLACEHOLDER_PATTERN } from "@/lib/placeholders";
+
 /**
  * The canonical export document.
  *
@@ -118,8 +120,6 @@ export const DEMO_DISCLAIMER: DisclaimerSpec = {
   watermark: "SAMPLE",
 };
 
-/** Matches the tracked marker the generation pipeline emits. */
-const PLACEHOLDER_PATTERN = /\[STUDENT DATA REQUIRED:\s*([^\]]+)\]/gi;
 
 function textOf(node: Node): string {
   return node.textContent ?? "";

@@ -83,6 +83,14 @@ describe("demo invariants", () => {
       db.project.update({ where: { id: demo.id }, data: { kind: "REAL" } }),
     ).rejects.toThrow();
 
+    /*
+     * PGLite closes the connection when a statement raises, so the follow-up
+     * read needs a fresh one. This is a wasm test-engine quirk, not something
+     * the application does — a real Postgres keeps the session open.
+     */
+    await db.$disconnect();
+    await db.$connect();
+
     const unchanged = await db.project.findUnique({ where: { id: demo.id } });
     expect(unchanged?.kind).toBe("DEMO");
   });
