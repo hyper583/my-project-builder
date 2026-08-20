@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { BookOpen, FilePlus2, FolderOpen, Loader2, Search } from "lucide-react";
+import {
+  BookOpen,
+  FilePlus2,
+  FolderOpen,
+  Loader2,
+  Search,
+  Zap,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,6 +18,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { createDemoProject } from "@/server/actions/demo";
 import {
   createProject,
+  createProjectFromTopic,
   deleteProject,
   duplicateProject,
 } from "@/server/actions/projects";
@@ -69,50 +77,151 @@ function StatusPill({
   );
 }
 
+/**
+ * Project types offered on the fast path.
+ *
+ * A short list rather than every seeded type: this control exists to keep the
+ * structure right without turning the fast path back into a form. The full set
+ * is still available in the wizard's own project-type step.
+ *
+ * The keys must match `ProjectTypeDef.key` — the server rejects anything it
+ * has not seeded, because the structure template and the methodology form both
+ * key off this value.
+ */
+const QUICK_TYPES = [
+  { value: "research-project", label: "Research project" },
+  { value: "project-proposal", label: "Proposal" },
+  { value: "thesis", label: "Thesis" },
+  { value: "dissertation", label: "Dissertation" },
+  { value: "seminar", label: "Seminar" },
+  { value: "research-paper", label: "Research paper" },
+] as const;
+
+/**
+ * Starting a project, both ways.
+ *
+ * One field, because a working title and a topic are the same sentence at this
+ * stage. The two buttons are the actual choice: set the project up properly, or
+ * skip straight to a structured draft.
+ *
+ * The fast path is not a lesser product — the wizard has always been optional —
+ * but it does produce a thinner project, and the note below says so rather than
+ * letting the student discover it in the output. What it cannot know it marks,
+ * and completing setup later closes the gap.
+ */
 function NewProjectForm() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
+  const [topic, setTopic] = useState("");
+  const [projectType, setProjectType] = useState<string>(QUICK_TYPES[0].value);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // The fast path builds a whole document from this one sentence, so it asks
+  // for a little more than a working title does.
+  const tooShortToSkip = topic.trim().length < 12;
+
+  function run(mode: "setup" | "skip") {
+    setError(null);
+    startTransition(async () => {
+      const result =
+        mode === "skip"
+          ? await createProjectFromTopic({ topic, projectType })
+          : await createProject({ title: topic });
+
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+
+      // Skipping setup lands on the blueprint: the structure was chosen for
+      // them, so they should see it before spending a generation run.
+      router.push(
+        mode === "skip"
+          ? `/projects/${result.data.id}/blueprint`
+          : `/projects/${result.data.id}/wizard/1`,
+      );
+    });
+  }
+
   return (
     <form
-      className="flex flex-col gap-3 sm:flex-row"
+      className="space-y-3"
       onSubmit={(event) => {
         event.preventDefault();
-        setError(null);
-        startTransition(async () => {
-          const result = await createProject({ title });
-          if (!result.ok) {
-            setError(result.message);
-            return;
-          }
-          router.push(`/projects/${result.data.id}/wizard/1`);
-        });
+        run("setup");
       }}
     >
-      <div className="flex-1">
-        <label htmlFor="new-project-title" className="sr-only">
-          Working title for your new project
-        </label>
-        <input
-          id="new-project-title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="e.g. Effect of study habits on academic performance"
-          className="h-11 w-full field px-3 text-base"
-        />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex-1">
+          <label htmlFor="new-project-title" className="sr-only">
+            Your project topic
+          </label>
+          <input
+            id="new-project-title"
+            value={topic}
+            onChange={(event) => setTopic(event.target.value)}
+            placeholder="e.g. Effect of study habits on academic performance"
+            className="h-11 w-full field px-3 text-base"
+          />
+        </div>
+
+        <div className="sm:w-52">
+          <label htmlFor="new-project-type" className="sr-only">
+            Project type
+          </label>
+          <select
+            id="new-project-type"
+            value={projectType}
+            onChange={(event) => setProjectType(event.target.value)}
+            className="h-11 w-full cursor-pointer field px-3 text-base"
+          >
+            {QUICK_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <Button type="submit" disabled={pending || topic.trim().length === 0}>
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <FilePlus2 className="size-4" aria-hidden="true" />
+          )}
+          Set up my project
+        </Button>
       </div>
-      <Button type="submit" disabled={pending || title.trim().length === 0}>
-        {pending ? (
-          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-        ) : (
-          <FilePlus2 className="size-4" aria-hidden="true" />
-        )}
-        Create New Project
-      </Button>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || tooShortToSkip}
+          onClick={() => run("skip")}
+          title={
+            tooShortToSkip
+              ? "Describe your topic in a few words first"
+              : "Creates the project with a standard structure, ready to generate"
+          }
+        >
+          {pending ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Zap className="size-4" aria-hidden="true" />
+          )}
+          Skip setup
+        </Button>
+        <p className="max-w-xl text-xs leading-relaxed text-subtle-foreground">
+          Builds the project from your topic with a standard chapter structure,
+          ready to generate. Anything it cannot know — your methodology, sample,
+          institution — is marked for you rather than invented, so expect more
+          to fill in afterwards.
+        </p>
+      </div>
+
       {error ? (
-        <p role="alert" className="text-sm text-destructive sm:sr-only">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
