@@ -135,7 +135,7 @@ export function ProjectHealthPanel({
 
       <div className="mt-5 flex flex-wrap items-end gap-x-6 gap-y-3 border-y border-border py-5">
         <div>
-          <span className={`tabular font-serif text-5xl leading-none font-semibold ${bandTone}`}>
+          <span className={`mono-figure text-[2.75rem] leading-none font-medium ${bandTone}`}>
             {score}
           </span>
           <span className="ml-1 text-lg text-muted-foreground">/100</span>

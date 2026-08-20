@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Wordmark } from "@/components/shell/wordmark";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -13,22 +14,14 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-5 py-3 sm:gap-6 sm:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="flex size-7 items-center justify-center rounded-md bg-primary font-serif text-sm font-semibold text-on-primary"
-          >
-            M
-          </span>
-          {/*
-            The wordmark is dropped below `sm`. With it, the mark plus the two
-            auth buttons overflowed a 375px viewport by ~115px; the monogram
-            still identifies the product, and the link still reads "My Project
-            Builder" to a screen reader.
-          */}
-          <span className="hidden font-serif text-lg font-semibold tracking-tight sm:inline">
-            My Project Builder
-          </span>
+        {/*
+          The name is dropped below `sm`. With it, the mark plus the two auth
+          buttons overflowed a 375px viewport by ~115px; the mark alone still
+          identifies the product, and the link still reads "My Project Builder"
+          to a screen reader.
+        */}
+        <Link href="/" className="focus-glow flex shrink-0 items-center rounded-md">
+          <Wordmark nameClassName="hidden sm:inline" />
           <span className="sr-only sm:hidden">My Project Builder</span>
         </Link>
 
@@ -64,17 +57,7 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-2.5">
-              <span
-                aria-hidden="true"
-                className="flex size-7 items-center justify-center rounded-md bg-primary font-serif text-sm font-semibold text-on-primary"
-              >
-                M
-              </span>
-              <span className="font-serif text-lg font-semibold tracking-tight">
-                My Project Builder
-              </span>
-            </div>
+            <Wordmark />
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
               An academic project workspace. It assists with drafting, organisation and
               formatting — it does not fabricate research results, participants or findings.
@@ -82,9 +65,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h2 className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              Product
-            </h2>
+            <h2 className="label-caps">Product</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {NAV.map((item) => (
                 <li key={item.href}>
@@ -100,9 +81,7 @@ export function SiteFooter() {
           </div>
 
           <div>
-            <h2 className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-              Account
-            </h2>
+            <h2 className="label-caps">Account</h2>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link
