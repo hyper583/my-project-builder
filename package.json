@@ -61,5 +61,8 @@
     "typescript": "^5",
     "vitest": "^4.1.11"
   },
-  "description": "AI-powered academic project workspace"
+  "description": "AI-powered academic project workspace",
+  "overrides": {
+    "deepmerge-ts": "^8.0.1"
+  }
 }

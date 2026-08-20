@@ -12,7 +12,7 @@ const NAV = [
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-sm">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-6 px-5 py-3 sm:px-8">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-5 py-3 sm:gap-6 sm:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span
             aria-hidden="true"
@@ -20,9 +20,16 @@ export function SiteHeader() {
           >
             M
           </span>
-          <span className="font-serif text-lg font-semibold tracking-tight">
+          {/*
+            The wordmark is dropped below `sm`. With it, the mark plus the two
+            auth buttons overflowed a 375px viewport by ~115px; the monogram
+            still identifies the product, and the link still reads "My Project
+            Builder" to a screen reader.
+          */}
+          <span className="hidden font-serif text-lg font-semibold tracking-tight sm:inline">
             My Project Builder
           </span>
+          <span className="sr-only sm:hidden">My Project Builder</span>
         </Link>
 
         <nav aria-label="Main" className="hidden flex-1 items-center gap-7 text-sm md:flex">
