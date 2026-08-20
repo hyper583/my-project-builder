@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
+
+import { renumberChapter, structureTemplate } from "@/lib/structures";
 import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,91 +24,6 @@ interface StructureValues {
 
 const CHAPTER_WORDS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT"];
 
-/**
- * Common Nigerian/UK five-chapter shape, offered as a starting point only.
- * Not every discipline follows it, so nothing here is fixed — every chapter and
- * section can be renamed, reordered or removed.
- */
-const FIVE_CHAPTER_TEMPLATE: StructureChapter[] = [
-  {
-    title: "Introduction",
-    number: "1",
-    children: [
-      { title: "Background to the Study", number: "1.1" },
-      { title: "Statement of the Problem", number: "1.2" },
-      { title: "Aim and Objectives", number: "1.3" },
-      { title: "Research Questions", number: "1.4" },
-      { title: "Significance of the Study", number: "1.5" },
-      { title: "Scope and Limitations", number: "1.6" },
-      { title: "Definition of Terms", number: "1.7" },
-    ],
-  },
-  {
-    title: "Literature Review",
-    number: "2",
-    children: [
-      { title: "Conceptual Framework", number: "2.1" },
-      { title: "Theoretical Framework", number: "2.2" },
-      { title: "Empirical Review", number: "2.3" },
-      { title: "Summary of Literature", number: "2.4" },
-    ],
-  },
-  {
-    title: "Research Methodology",
-    number: "3",
-    children: [
-      { title: "Research Design", number: "3.1" },
-      { title: "Population of the Study", number: "3.2" },
-      { title: "Sample Size and Sampling Technique", number: "3.3" },
-      { title: "Instrumentation", number: "3.4" },
-      { title: "Method of Data Collection", number: "3.5" },
-      { title: "Method of Data Analysis", number: "3.6" },
-    ],
-  },
-  {
-    title: "Results and Discussion",
-    number: "4",
-    children: [
-      { title: "Presentation of Results", number: "4.1" },
-      { title: "Analysis of Findings", number: "4.2" },
-      { title: "Discussion of Findings", number: "4.3" },
-    ],
-  },
-  {
-    title: "Summary, Conclusion and Recommendations",
-    number: "5",
-    children: [
-      { title: "Summary of Findings", number: "5.1" },
-      { title: "Conclusion", number: "5.2" },
-      { title: "Recommendations", number: "5.3" },
-      { title: "Suggestions for Further Research", number: "5.4" },
-    ],
-  },
-];
-
-function template(count: number): StructureChapter[] {
-  if (count >= 5) return FIVE_CHAPTER_TEMPLATE.slice(0, count).map(clone);
-  if (count === 4) {
-    return [FIVE_CHAPTER_TEMPLATE[0]!, FIVE_CHAPTER_TEMPLATE[1]!, FIVE_CHAPTER_TEMPLATE[2]!, FIVE_CHAPTER_TEMPLATE[4]!]
-      .map(clone)
-      .map((c, i) => renumber(c, i));
-  }
-  return [FIVE_CHAPTER_TEMPLATE[0]!, FIVE_CHAPTER_TEMPLATE[2]!, FIVE_CHAPTER_TEMPLATE[4]!]
-    .map(clone)
-    .map((c, i) => renumber(c, i));
-}
-
-const clone = (c: StructureChapter): StructureChapter => ({
-  title: c.title,
-  number: c.number,
-  children: c.children.map((s) => ({ title: s.title, number: s.number })),
-});
-
-const renumber = (c: StructureChapter, index: number): StructureChapter => ({
-  ...c,
-  number: String(index + 1),
-  children: c.children.map((s, j) => ({ ...s, number: `${index + 1}.${j + 1}` })),
-});
 
 const inputClass =
   "w-full rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -163,7 +80,7 @@ export function StructureStep({
     // Renumber after a move. Without this the display order and the chapter
     // numbers disagree — you get "1, 3, 2" in the blueprint and the export.
     // Numbers stay directly editable; a later move re-derives them again.
-    update(next.map((c, i) => renumber(c, i)));
+    update(next.map((c, i) => renumberChapter(c, i)));
   };
 
   const patchChapter = (index: number, patch: Partial<StructureChapter>) =>
@@ -180,7 +97,7 @@ export function StructureStep({
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-4 elevated-1">
         <span className="mr-1 text-sm font-medium">Start from:</span>
         {[3, 4, 5].map((n) => (
-          <Button key={n} variant="outline" size="sm" onClick={() => update(template(n))}>
+          <Button key={n} variant="outline" size="sm" onClick={() => update(structureTemplate(n))}>
             {n} chapters
           </Button>
         ))}

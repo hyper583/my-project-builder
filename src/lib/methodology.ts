@@ -9,7 +9,13 @@ import { z } from "zod";
  * entry in this file — not a database migration.
  */
 
-export type MethodologyKey = "general" | "experimental" | "questionnaire" | "software" | "business";
+export type MethodologyKey =
+  | "general"
+  | "experimental"
+  | "questionnaire"
+  | "software"
+  | "business"
+  | "proposal";
 
 export interface MethodologyField {
   readonly name: string;
@@ -26,6 +32,53 @@ export interface MethodologyForm {
 }
 
 export const METHODOLOGY_FORMS: Record<MethodologyKey, MethodologyForm> = {
+  /*
+   * A proposal is written before the work is done, so every field asks what
+   * the student intends rather than what happened. Asking for findings here
+   * would invite fabricated results for a study that has not been carried out.
+   */
+  proposal: {
+    key: "proposal",
+    label: "Proposed methodology",
+    description: "For a proposal — what you intend to do, not what you have done.",
+    fields: [
+      {
+        name: "proposedApproach",
+        label: "Proposed research approach",
+        kind: "text",
+        hint: "Qualitative, quantitative or mixed methods.",
+      },
+      {
+        name: "proposedProcedure",
+        label: "Proposed procedure",
+        kind: "textarea",
+        hint: "The steps you intend to follow, in order.",
+      },
+      {
+        name: "proposedInstruments",
+        label: "Instruments you plan to use",
+        kind: "textarea",
+        hint: "Questionnaire, interview guide, equipment, dataset.",
+      },
+      {
+        name: "expectedOutcomes",
+        label: "Expected outcomes",
+        kind: "textarea",
+        hint: "What you expect to find. Written as an expectation, never as a result.",
+      },
+      {
+        name: "timeline",
+        label: "Work plan and timeline",
+        kind: "textarea",
+        hint: "Roughly what you will do, and when.",
+      },
+      {
+        name: "ethicalConsiderations",
+        label: "Ethical considerations",
+        kind: "textarea",
+      },
+    ],
+  },
   general: {
     key: "general",
     label: "General research methodology",
@@ -106,6 +159,7 @@ export const PROJECT_TYPE_TO_METHODOLOGY: Record<string, MethodologyKey> = {
   thesis: "general",
   dissertation: "general",
   "research-paper": "general",
+  "project-proposal": "proposal",
   "case-study": "business",
   "laboratory-project": "experimental",
   "software-project": "software",

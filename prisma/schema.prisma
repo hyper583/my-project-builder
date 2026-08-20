@@ -185,6 +185,7 @@ model Project {
   conversations  AIConversation[]
   exports        Export[]
   issues         ConsistencyIssue[]
+  generation     ProjectGenerationSettings?
 
   @@index([userId, deletedAt])
   @@index([userId, status])
@@ -670,6 +671,38 @@ model AIMessage {
 
   @@index([conversationId, createdAt])
   @@map("ai_message")
+}
+
+/// How much to write, and which sources to draw on.
+///
+/// Separate from ProjectFormatting because these govern what the generator
+/// produces rather than how the finished document is laid out. Every field is
+/// optional: a student who states nothing gets sensible defaults rather than
+/// being blocked.
+model ProjectGenerationSettings {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// Target page range for the whole document. Converted to a word budget
+  /// using the project's own font size and line spacing, because pages are not
+  /// a unit a language model can aim at.
+  minPages Int?
+  maxPages Int?
+
+  /// Only cite sources published within this many years. Null means any age.
+  /// Departments frequently require recent literature, so this is asked
+  /// explicitly rather than assumed.
+  sourceRecencyYears Int?
+
+  /// Whether the generator may retrieve real published sources for the topic.
+  /// When false it cites only what the student supplied.
+  retrieveSources Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_generation_settings")
 }
 
 // ============================================================

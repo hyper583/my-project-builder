@@ -80,11 +80,14 @@ const PROJECT_TYPES = [
   { key: "seminar", label: "Seminar", methodologyKey: "general", order: 4 },
   { key: "thesis", label: "Thesis", methodologyKey: "general", order: 5 },
   { key: "dissertation", label: "Dissertation", methodologyKey: "general", order: 6 },
-  { key: "research-paper", label: "Research Paper", methodologyKey: "general", order: 7 },
-  { key: "case-study", label: "Case Study", methodologyKey: "business", order: 8 },
-  { key: "laboratory-project", label: "Laboratory Project", methodologyKey: "experimental", order: 9 },
-  { key: "software-project", label: "Software Project", methodologyKey: "software", order: 10 },
-  { key: "other", label: "Other", methodologyKey: "general", order: 11 },
+  // Written before the research happens, so it has no results chapter and its
+  // methodology states intent rather than what was done.
+  { key: "project-proposal", label: "Project Proposal", methodologyKey: "proposal", order: 7 },
+  { key: "research-paper", label: "Research Paper", methodologyKey: "general", order: 8 },
+  { key: "case-study", label: "Case Study", methodologyKey: "business", order: 9 },
+  { key: "laboratory-project", label: "Laboratory Project", methodologyKey: "experimental", order: 10 },
+  { key: "software-project", label: "Software Project", methodologyKey: "software", order: 11 },
+  { key: "other", label: "Other", methodologyKey: "general", order: 12 },
 ];
 
 const CITATION_STYLES = [
