@@ -8,6 +8,7 @@ import {
   BookMarked,
   Check,
   ClipboardPaste,
+  Search,
   Info,
   Loader2,
   Plus,
@@ -18,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   createReference,
+  findProjectSources,
   importReferences,
   markReferenceChecked,
   removeReference,
@@ -49,9 +51,11 @@ const inputClass = [
 /**
  * Reference manager.
  *
- * The verification badge is the substance here. Nothing is ever looked up or
- * completed from elsewhere, so an entry read out of pasted text says so and
- * asks to be checked, rather than presenting itself as confirmed.
+ * The verification badge is the substance here, because the three ways a
+ * reference arrives carry very different weight. A retrieved record is a real
+ * publication with a resolving DOI. A parsed one is a guess at somebody else's
+ * formatting and says so. A typed one is the student's own claim. Nothing is
+ * ever written by a model.
  */
 export function ReferenceManager({
   projectId,
@@ -68,6 +72,30 @@ export function ReferenceManager({
   const [pasted, setPasted] = useState("");
 
   const needsReview = references.filter((r) => r.verification === "NEEDS_REVIEW").length;
+
+  async function findSources() {
+    setPending("find");
+    setError(null);
+    setNotice(null);
+
+    const response = await findProjectSources({ projectId });
+    setPending(null);
+
+    if (!response.ok) {
+      setError(response.message);
+      return;
+    }
+
+    const { found, added, alreadyPresent } = response.data;
+    setNotice(
+      found === 0
+        ? "No published sources matched this topic. Try widening it, or removing the recency limit."
+        : `Found ${found} published ${found === 1 ? "work" : "works"}. Added ${added}` +
+          (alreadyPresent > 0 ? `, ${alreadyPresent} already in your list.` : ".") +
+          " Every one is a real publication with a working DOI.",
+    );
+    router.refresh();
+  }
 
   async function doImport() {
     setPending("import");
@@ -148,11 +176,20 @@ export function ReferenceManager({
             References
           </h2>
           <p className="mt-2 max-w-xl leading-relaxed text-muted-foreground">
-            Publication details are never looked up or filled in for you. Anything read out of
-            pasted text is marked for your review until you confirm it.
+            Sources are found in OpenAlex and Crossref — real publications with working DOIs.
+            Nothing is written by the AI: details are retrieved, pasted by you, or typed by you,
+            and anything a parser had to guess is flagged for your review.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button onClick={findSources} disabled={pending !== null}>
+            {pending === "find" ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Search className="size-4" aria-hidden="true" />
+            )}
+            Find sources for my topic
+          </Button>
           <Button
             variant="outline"
             onClick={() => setMode(mode === "paste" ? "none" : "paste")}
@@ -162,6 +199,7 @@ export function ReferenceManager({
             Paste references
           </Button>
           <Button
+            variant="outline"
             onClick={() => setMode(mode === "form" ? "none" : "form")}
             disabled={pending !== null}
           >
@@ -316,7 +354,7 @@ export function ReferenceManager({
                   {reference.verification === "VERIFIED" ? (
                     <span className="flex items-center gap-1 text-success">
                       <BadgeCheck className="size-3.5" aria-hidden="true" />
-                      Checked by you
+                      {reference.doi ? "Real publication · DOI verified" : "Checked by you"}
                     </span>
                   ) : reference.verification === "NEEDS_REVIEW" ? (
                     <span className="flex items-center gap-1 text-warning">

@@ -1,6 +1,7 @@
 import { AppError } from "@/server/errors";
 import { prisma } from "@/server/db";
 import { parseCitation } from "@/server/services/references/parse";
+import { retrieveSources } from "@/server/services/references/retrieve";
 
 /**
  * Reference management.
@@ -9,13 +10,17 @@ import { parseCitation } from "@/server/services/references/parse";
  *
  * - `USER_PROVIDED` — the student typed or pasted it. Their own words, taken
  *   at face value.
- * - `NEEDS_REVIEW` — we read fields out of pasted text. Best effort, and the
- *   student is told to check it.
- * - `VERIFIED` — the student has confirmed it themselves.
+ * - `NEEDS_REVIEW` — a parser read fields out of pasted text. Best effort, and
+ *   the student is told to check it.
+ * - `VERIFIED` — either the student confirmed it, or it came from a
+ *   bibliographic database with a resolving DOI.
  *
- * Nothing is ever fetched, completed or corrected from elsewhere. A reference
- * with an invented year or a plausible journal name is worse than an
- * incomplete one, because it is wrong in a way the student cannot see.
+ * **Nothing is ever generated.** Details are either supplied by the student,
+ * read from text they pasted, or retrieved from OpenAlex and Crossref — never
+ * produced by a model. A reference with an invented year or a plausible
+ * journal name is worse than an incomplete one, because it is wrong in a way
+ * the student cannot see, and a fabricated citation in submitted work is a
+ * misconduct finding rather than a poor mark.
  */
 
 export interface ReferenceInput {
@@ -196,4 +201,79 @@ export async function listReferences(projectId: string) {
     ...reference,
     citationCount: reference._count.citations,
   }));
+}
+
+export interface RetrieveOutcome {
+  found: number;
+  added: number;
+  alreadyPresent: number;
+}
+
+/**
+ * Finds real published sources for a topic and records them.
+ *
+ * Retrieved entries are marked VERIFIED because they come from a bibliographic
+ * database rather than from a parser or a model — the publication data is what
+ * the database holds, and the DOI resolves. That is a stronger claim than
+ * anything else in this file can make, and it is the only path that earns it
+ * without the student checking by hand.
+ *
+ * Existing entries are never overwritten. A student who has already recorded a
+ * work, possibly with their own corrections, keeps their version.
+ */
+export async function findSources(
+  projectId: string,
+  options: { query: string; recencyYears?: number | null; limit?: number },
+): Promise<RetrieveOutcome> {
+  const sources = await retrieveSources({
+    query: options.query,
+    recencyYears: options.recencyYears,
+    limit: options.limit ?? 12,
+  });
+
+  if (sources.length === 0) return { found: 0, added: 0, alreadyPresent: 0 };
+
+  const existing = await prisma.projectReference.findMany({
+    where: { projectId },
+    select: { doi: true, title: true },
+  });
+
+  const seenDois = new Set(
+    existing.map((r) => r.doi?.toLowerCase()).filter((d): d is string => Boolean(d)),
+  );
+  const seenTitles = new Set(existing.map((r) => r.title.toLowerCase().replace(/[^a-z0-9]/g, "")));
+
+  let added = 0;
+  let alreadyPresent = 0;
+
+  for (const source of sources) {
+    const doiKey = source.doi?.toLowerCase();
+    const titleKey = source.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    if ((doiKey && seenDois.has(doiKey)) || seenTitles.has(titleKey)) {
+      alreadyPresent += 1;
+      continue;
+    }
+
+    await prisma.projectReference.create({
+      data: {
+        projectId,
+        authors: source.authors,
+        year: source.year,
+        title: source.title,
+        publication: source.publication,
+        doi: source.doi,
+        url: source.url,
+        // Provenance, kept verbatim so a student can see where it came from.
+        raw: null,
+        verification: "VERIFIED",
+      },
+    });
+
+    if (doiKey) seenDois.add(doiKey);
+    seenTitles.add(titleKey);
+    added += 1;
+  }
+
+  return { found: sources.length, added, alreadyPresent };
 }

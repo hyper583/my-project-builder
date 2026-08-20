@@ -6,6 +6,7 @@ import { PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { ExportPanel } from "@/components/export/export-panel";
+import { GenerationSettings } from "@/components/generation/generation-settings";
 import { ProjectHealthPanel } from "@/components/health/project-health";
 import { ReferenceManager } from "@/components/references/reference-manager";
 import { VersionHistory } from "@/components/versions/version-history";
@@ -14,6 +15,8 @@ import { resolveExportPolicy } from "@/server/services/export/policy";
 import { listIssues } from "@/server/services/consistency";
 import { computeHealth } from "@/server/services/health";
 import { listReferences } from "@/server/services/references";
+import { parseFormatting } from "@/server/services/export/assemble";
+import { wordsPerPage } from "@/server/services/generation/budget";
 import { listVersions } from "@/server/services/versions";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { aiConfigured } from "@/server/services/ai";
@@ -106,6 +109,14 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     where: { projectId: id, status: { in: ["QUEUED", "RUNNING"] } },
     select: { id: true },
   });
+
+  // Words per page depends on the student's own layout, so the slider's
+  // estimate moves when they change font size, spacing or margins.
+  const generationSettings = await prisma.projectGenerationSettings.findUnique({
+    where: { projectId: id },
+    select: { minPages: true, maxPages: true, sourceRecencyYears: true },
+  });
+  const perPage = wordsPerPage(parseFormatting(f));
 
   const [health, openIssues, dismissedIssues, references] = await Promise.all([
     computeHealth(id),
@@ -303,6 +314,16 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
             source: issue.source,
           }))}
           dismissedCount={dismissedIssues.length}
+        />
+      </div>
+
+      <div className="mt-8">
+        <GenerationSettings
+          projectId={id}
+          minPages={generationSettings?.minPages ?? null}
+          maxPages={generationSettings?.maxPages ?? null}
+          sourceRecencyYears={generationSettings?.sourceRecencyYears ?? null}
+          wordsPerPage={perPage}
         />
       </div>
 

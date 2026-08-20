@@ -6,13 +6,18 @@ import { z } from "zod";
 import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { fail, ok, type ActionResult } from "@/server/errors";
+import { LIMITS } from "@/config/limits";
+import { prisma } from "@/server/db";
+import { checkRateLimit } from "@/server/services/rate-limit";
 import {
   addReference,
   confirmReference,
   deleteReference,
+  findSources,
   importCitations,
   updateReference,
   type ImportOutcome,
+  type RetrieveOutcome,
 } from "@/server/services/references";
 
 /** Ownership is proved before any read or write; the service scopes every query too. */
@@ -106,6 +111,59 @@ export async function removeReference(input: unknown): Promise<ActionResult<null
     await deleteReference(id, referenceId);
     revalidatePath(`/projects/${id}/blueprint`);
     return ok(null);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Finds real published sources for the project's topic.
+ *
+ * Rate-limited because it reaches two external databases, and the query
+ * defaults to the project's own topic so a student who has typed nothing but
+ * that still gets a reading list.
+ */
+export async function findProjectSources(input: unknown): Promise<ActionResult<RetrieveOutcome>> {
+  try {
+    const { projectId, query } = z
+      .object({ projectId: z.string().min(1), query: z.string().trim().max(300).optional() })
+      .parse(input);
+
+    const user = await requireUser();
+    const id = await ownedProject(projectId);
+
+    await checkRateLimit(`sources:${user.id}`, ...LIMITS.rateLimit.aiAction);
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: {
+        topic: true,
+        title: true,
+        researchArea: true,
+        generation: { select: { sourceRecencyYears: true } },
+      },
+    });
+
+    // The topic is the natural query; the title is the fallback for a project
+    // whose topic has not been filled in yet.
+    const search =
+      query?.trim() ||
+      [project?.topic, project?.researchArea].filter(Boolean).join(" ") ||
+      project?.title ||
+      "";
+
+    if (!search.trim()) {
+      return fail(
+        new Error("Add a topic to your project first, so there is something to search for."),
+      );
+    }
+
+    return ok(
+      await findSources(id, {
+        query: search,
+        recencyYears: project?.generation?.sourceRecencyYears ?? null,
+      }),
+    );
   } catch (error) {
     return fail(error);
   }
