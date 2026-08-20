@@ -31,10 +31,10 @@ export function DemoBanner({
   return (
     <section
       aria-labelledby="demo-heading"
-      className="rounded-lg border border-accent/35 bg-accent-subtle p-5"
+      className="rounded-lg border border-warning/40 bg-warning-subtle p-5"
     >
       <div className="flex items-start gap-3">
-        <FlaskConical className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden="true" />
+        <FlaskConical className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <h2 id="demo-heading" className="font-semibold">
             This is a sample project
