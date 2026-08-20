@@ -49,7 +49,9 @@ async function main(): Promise<void> {
   while (!stopping) {
     let job = null;
     try {
-      job = await claimNextJob(workerId);
+      // Its own provider, so a worker left running from an earlier session
+      // cannot take a job queued for a different one.
+      job = await claimNextJob(workerId, ai.name);
     } catch (error) {
       // A database blip must not kill the worker — back off and try again.
       console.error(`[worker ${workerId}] claim failed:`, error);
