@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { ExportPanel } from "@/components/export/export-panel";
 import { ProjectHealthPanel } from "@/components/health/project-health";
+import { ReferenceManager } from "@/components/references/reference-manager";
 import { VersionHistory } from "@/components/versions/version-history";
 import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
 import { listIssues } from "@/server/services/consistency";
 import { computeHealth } from "@/server/services/health";
+import { listReferences } from "@/server/services/references";
 import { listVersions } from "@/server/services/versions";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { aiConfigured } from "@/server/services/ai";
@@ -105,10 +107,11 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     select: { id: true },
   });
 
-  const [health, openIssues, dismissedIssues] = await Promise.all([
+  const [health, openIssues, dismissedIssues, references] = await Promise.all([
     computeHealth(id),
     listIssues(id, "OPEN"),
     listIssues(id, "DISMISSED"),
+    listReferences(id),
   ]);
 
   const versions = (await listVersions(id)).map((version) => ({
@@ -300,6 +303,27 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
             source: issue.source,
           }))}
           dismissedCount={dismissedIssues.length}
+        />
+      </div>
+
+      <div className="mt-8">
+        <ReferenceManager
+          projectId={id}
+          references={references.map((reference) => ({
+            id: reference.id,
+            authors: reference.authors,
+            year: reference.year,
+            title: reference.title,
+            publication: reference.publication,
+            volume: reference.volume,
+            issue: reference.issue,
+            pages: reference.pages,
+            doi: reference.doi,
+            url: reference.url,
+            raw: reference.raw,
+            verification: reference.verification,
+            citationCount: reference.citationCount,
+          }))}
         />
       </div>
 
