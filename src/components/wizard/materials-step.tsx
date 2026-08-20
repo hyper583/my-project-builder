@@ -151,7 +151,7 @@ export function MaterialsStep({
           id="doc-category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="h-11 w-full cursor-pointer rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:max-w-sm"
+          className="h-11 w-full cursor-pointer field px-3 text-base sm:max-w-sm"
         >
           <option value="">Not specified</option>
           {CATEGORIES.map((c) => (

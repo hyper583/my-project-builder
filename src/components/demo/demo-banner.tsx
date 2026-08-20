@@ -87,7 +87,7 @@ export function DemoBanner({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Effect of study habits on academic performance"
-                  className="h-11 w-full rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className="h-11 w-full field px-3 text-base"
                 />
               </div>
               {error ? (

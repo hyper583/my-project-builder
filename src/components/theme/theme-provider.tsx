@@ -9,11 +9,15 @@ import { THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
  * Theme control.
  *
  * Three states, not two: "system" is a real choice, distinct from having
- * picked light or dark. Only an explicit choice writes `data-theme` onto the
+ * picked light or dark. Only light and dark write `data-theme` onto the
  * document; under "system" the attribute is removed so the CSS
  * `prefers-color-scheme` block takes over. That keeps one source of truth —
  * the OS — rather than snapshotting it into storage where it would go stale
  * the moment the user changes their system setting.
+ *
+ * All three are written to storage, including "system". The product default is
+ * dark, and the pre-paint script distinguishes "chose to follow the OS" from
+ * "has never chosen" by whether anything is stored at all.
  *
  * The chosen theme is read from the document element through
  * `useSyncExternalStore` rather than held in `useState`. The document is the
@@ -76,8 +80,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     else root.setAttribute("data-theme", next);
 
     try {
-      if (next === "system") window.localStorage.removeItem(THEME_STORAGE_KEY);
-      else window.localStorage.setItem(THEME_STORAGE_KEY, next);
+      // "system" is stored rather than cleared. The pre-paint script reads an
+      // empty slot as "never chosen" and stamps the product default, which is
+      // dark — so clearing the key would silently convert a deliberate
+      // "follow my OS" into "dark" on the next visit.
+      window.localStorage.setItem(THEME_STORAGE_KEY, next);
     } catch {
       // Storage can be unavailable (private mode, blocked cookies). The theme
       // still applies for this session; it simply will not be remembered.

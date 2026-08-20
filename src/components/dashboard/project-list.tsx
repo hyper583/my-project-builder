@@ -75,7 +75,7 @@ function NewProjectForm() {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="e.g. Effect of study habits on academic performance"
-          className="h-11 w-full rounded-md border border-input bg-card px-3 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="h-11 w-full field px-3 text-base"
         />
       </div>
       <Button type="submit" disabled={pending || title.trim().length === 0}>
@@ -180,7 +180,7 @@ export function ProjectList({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by title, topic or department"
-            className="h-11 w-full rounded-md border border-input bg-card pr-3 pl-9 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="h-11 w-full field pr-3 pl-9 text-base"
           />
         </div>
       </form>

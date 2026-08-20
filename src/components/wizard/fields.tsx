@@ -15,7 +15,7 @@ import type { SaveState } from "@/components/wizard/use-autosave";
  */
 
 const inputClass =
-  "w-full rounded-md border border-input bg-card px-3 py-2.5 text-base transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "w-full field px-3 py-2.5 text-base";
 
 function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (

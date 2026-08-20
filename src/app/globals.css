@@ -4,68 +4,88 @@
  * My Project Builder — design system
  * ==================================
  *
- * Structure from Swiss Modernism: a strict grid, 8px mathematical spacing,
- * high contrast, minimal decoration, and a SINGLE accent used sparingly.
- * Character from institutional academic publishing: ink and brass, serif
- * display type, generous measure. Craft from modern product software: a real
- * elevation scale, a dark mode that is designed rather than inverted, and
- * motion that is fast and purposeful.
+ * The product is an academic project operating system. That reading decides
+ * every choice below: the INSTRUMENT is a precision tool — obsidian, tight
+ * sans, a monospace register for every figure, one electric accent used only
+ * to mark state. The ARTIFACT it builds is a scholarly document — serif,
+ * measured, generous — and that character is confined to `.document`, where an
+ * actual academic document lives.
  *
- * Deliberately absent: glass/backdrop-blur as decoration, gradient text, mesh
- * or orb backgrounds, glowing borders. Those read as generic AI product and
- * age badly. Depth here comes from surface, hairline and shadow only.
+ * Blueprint → construction → project. The chrome is the drafting table; the
+ * page in the middle is the work.
+ *
+ * Deliberately absent: gradient text, mesh and orb backgrounds, glowing
+ * borders, glass as decoration, purple. Those read as generic AI product and
+ * age within a year. Depth here is surface, hairline and shadow; emphasis is
+ * weight, spacing and a single hue.
  *
  * Every colour is a semantic token. Components reference the token, never a
  * raw hex value.
  */
 
 /* ============================================================
-   LIGHT — the default
-   ============================================================ */
+   LIGHT
+   ============================================================
+
+   Light is the CSS base so that any context which never runs the pre-paint
+   script — JS disabled, a stripped print context — still renders legibly on
+   white rather than inheriting a half-applied dark theme. The product default
+   is dark; that is decided by the script in the root layout stamping
+   `data-theme="dark"` when nothing is stored, not by which block comes first
+   here. */
 
 :root {
   color-scheme: light;
 
   /* Surfaces, lightest to most raised. */
-  --background: #f7f7f5;
-  --surface: #fdfdfc;
+  --background: #fafafa;
+  --surface: #ffffff;
   --card: #ffffff;
-  --card-foreground: #0d1117;
+  --card-foreground: #0b0d12;
   --surface-raised: #ffffff;
-  --surface-sunken: #f0f0ed;
+  --surface-sunken: #f2f3f5;
 
-  --foreground: #0d1117;
-  --muted: #ececea;
-  --muted-foreground: #5b6472;
-  --subtle-foreground: #69727f;
+  --foreground: #0b0d12;
+  --muted: #eef0f3;
+  --muted-foreground: #5a616d;
+  --subtle-foreground: #6b7280;
 
   /*
    * Ink — reserved for large colour FIELDS (the auth panel, the closing call
    * to action). Distinct from `--primary` on purpose: primary inverts to a
-   * light tint in dark mode so it stays legible as text and buttons, which
-   * would turn a full-bleed panel into a glaring bright block.
+   * brighter blue in dark mode so it stays legible as text and buttons, which
+   * would turn a full-bleed panel into a glaring block.
    */
-  --ink: #16304d;
-  --on-ink: #f7f7f5;
+  --ink: #10131a;
+  --on-ink: #eef0f3;
 
-  /* Ink navy — structure and primary action. */
-  --primary: #16304d;
-  --primary-hover: #1f4066;
+  /* Electric blue — structure, primary action, and the only identity accent. */
+  --primary: #1a56db;
+  --primary-hover: #1547b8;
   --on-primary: #ffffff;
+  --primary-subtle: #eaf0fe;
 
-  --secondary: #2563eb;
+  --secondary: #1a56db;
   --on-secondary: #ffffff;
 
-  /* Brass — the single accent. Used for emphasis, never as decoration. */
-  --accent: #96631f;
-  --accent-hover: #7d5219;
-  --accent-subtle: #f5ecdd;
+  /*
+   * `--accent` is now an alias of primary. It survives as a token because
+   * components across the app reference it; pointing it at the same hue is
+   * what retires brass as a brand colour without a sweeping rename.
+   */
+  --accent: #1a56db;
+  --accent-hover: #1547b8;
+  --accent-subtle: #eaf0fe;
   --on-accent: #ffffff;
 
-  --border: #e0e0dc;
-  --border-strong: #c9c9c3;
-  --input: #8e8e87;
-  --ring: #16304d;
+  /* Live — in-progress only. Never decoration, never a brand colour. */
+  --live: #0e7490;
+  --live-subtle: #e4f4f8;
+
+  --border: #e4e6ea;
+  --border-strong: #c9cdd4;
+  --input: #767c86;
+  --ring: #1a56db;
 
   --destructive: #b42318;
   --destructive-subtle: #fdeceb;
@@ -73,71 +93,83 @@
 
   --success: #17683a;
   --success-subtle: #e6f4ec;
+
+  /* Amber is a STATE colour now — warnings, and the sample-project marking. */
   --warning: #96631f;
-  --warning-subtle: #f5ecdd;
+  --warning-subtle: #f8f0e2;
+  --on-warning: #ffffff;
 
   /*
-   * Elevation. In light mode depth is cast shadow, tuned tight and warm —
+   * Elevation. In light mode depth is cast shadow, tuned tight and neutral —
    * two layers so the shape reads at both close and far distance.
    */
-  --elevation-1: 0 1px 2px rgba(13, 17, 23, 0.05), 0 1px 1px rgba(13, 17, 23, 0.03);
-  --elevation-2: 0 2px 4px rgba(13, 17, 23, 0.05), 0 4px 12px rgba(13, 17, 23, 0.05);
-  --elevation-3: 0 4px 8px rgba(13, 17, 23, 0.05), 0 12px 28px rgba(13, 17, 23, 0.08);
-  --elevation-4: 0 8px 16px rgba(13, 17, 23, 0.06), 0 24px 56px rgba(13, 17, 23, 0.12);
+  --elevation-1: 0 1px 2px rgba(11, 13, 18, 0.05), 0 1px 1px rgba(11, 13, 18, 0.03);
+  --elevation-2: 0 2px 4px rgba(11, 13, 18, 0.05), 0 4px 12px rgba(11, 13, 18, 0.05);
+  --elevation-3: 0 4px 8px rgba(11, 13, 18, 0.05), 0 12px 28px rgba(11, 13, 18, 0.08);
+  --elevation-4: 0 8px 16px rgba(11, 13, 18, 0.06), 0 24px 56px rgba(11, 13, 18, 0.12);
 
   /* Top highlight — carries elevation in dark mode; inert here. */
   --hairline: transparent;
+
+  /* The blueprint grid. Barely there by design — see `.blueprint`. */
+  --grid-line: rgba(11, 13, 18, 0.035);
 }
 
 /* ============================================================
-   DARK — designed, not derived
+   DARK — the product default
    ============================================================
 
-   Dark surfaces are near-black with a slight cool cast, never navy-tinted:
-   a tinted dark mode makes every colour on top of it look muddy. Elevation is
-   expressed by LIGHTENING the surface and adding a 1px top highlight, because
-   a cast shadow is invisible against a dark ground — which is the usual reason
-   a dark theme reads as cheap.
+   Obsidian, never pure black: #000 gives a dark theme no room to express
+   elevation, and every surface above it has to shout. A slight cool cast, no
+   navy tint — a tinted ground makes everything on top of it look muddy.
 
-   Declared twice on purpose: `[data-theme="dark"]` for an explicit choice,
-   and `prefers-color-scheme` for "system", guarded so an explicit light
-   choice always wins over the OS preference. */
+   Elevation is expressed by LIGHTENING the surface and adding a 1px top
+   highlight, because a cast shadow is invisible against a dark ground, which
+   is the usual reason a dark theme reads as cheap.
+
+   Declared twice on purpose: `[data-theme="dark"]` for the stamped default and
+   an explicit choice, and `prefers-color-scheme` for someone who has chosen
+   "system", guarded so an explicit light choice always wins over the OS. */
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --background: #0a0c10;
-    --surface: #101318;
-    --card: #14181e;
-    --card-foreground: #e8eaed;
-    --surface-raised: #1a1f26;
-    --surface-sunken: #070609;
+    --background: #08090d;
+    --surface: #0c0e13;
+    --card: #101318;
+    --card-foreground: #e9ebef;
+    --surface-raised: #161a21;
+    --surface-sunken: #050609;
 
-    --foreground: #e8eaed;
-    --muted: #1c2129;
-    --muted-foreground: #98a1af;
-    --subtle-foreground: #808a99;
+    --foreground: #e9ebef;
+    --muted: #191d24;
+    --muted-foreground: #9ba3b0;
+    --subtle-foreground: #7e8695;
 
-    --ink: #141922;
-    --on-ink: #e8eaed;
+    --ink: #0c0e13;
+    --on-ink: #e9ebef;
 
-    --primary: #7fa8d9;
-    --primary-hover: #9dbde5;
-    --on-primary: #0a0c10;
+    --primary: #4c8dff;
+    --primary-hover: #6ba1ff;
+    --on-primary: #050609;
+    --primary-subtle: #0e1a2e;
 
-    --secondary: #60a5fa;
-    --on-secondary: #0a0c10;
+    --secondary: #4c8dff;
+    --on-secondary: #050609;
 
-    --accent: #d9a441;
-    --accent-hover: #e5b660;
-    --accent-subtle: #241c0d;
-    --on-accent: #17130a;
+    --accent: #4c8dff;
+    --accent-hover: #6ba1ff;
+    --accent-subtle: #0e1a2e;
+    --on-accent: #050609;
 
-    --border: #252b34;
-    --border-strong: #39414d;
+    --live: #38bdf8;
+    --live-subtle: #072130;
+
+    --border: #1e232b;
+    --border-strong: #2c333d;
     --input: #626b7a;
-    --ring: #7fa8d9;
+    --ring: #4c8dff;
 
     --destructive: #f2776b;
     --destructive-subtle: #2a1512;
@@ -145,52 +177,59 @@
 
     --success: #56d391;
     --success-subtle: #0e2418;
+
     --warning: #e5b660;
     --warning-subtle: #241c0d;
+    --on-warning: #17130a;
 
     --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.5);
     --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.55);
     --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.6);
     --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.7);
 
-    --hairline: rgba(255, 255, 255, 0.07);
+    --hairline: rgba(255, 255, 255, 0.06);
+    --grid-line: rgba(255, 255, 255, 0.022);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --background: #0a0c10;
-  --surface: #101318;
-  --card: #14181e;
-  --card-foreground: #e8eaed;
-  --surface-raised: #1a1f26;
-  --surface-sunken: #070609;
+  --background: #08090d;
+  --surface: #0c0e13;
+  --card: #101318;
+  --card-foreground: #e9ebef;
+  --surface-raised: #161a21;
+  --surface-sunken: #050609;
 
-  --foreground: #e8eaed;
-  --muted: #1c2129;
-  --muted-foreground: #98a1af;
-  --subtle-foreground: #808a99;
+  --foreground: #e9ebef;
+  --muted: #191d24;
+  --muted-foreground: #9ba3b0;
+  --subtle-foreground: #7e8695;
 
-  --ink: #141922;
-  --on-ink: #e8eaed;
+  --ink: #0c0e13;
+  --on-ink: #e9ebef;
 
-  --primary: #7fa8d9;
-  --primary-hover: #9dbde5;
-  --on-primary: #0a0c10;
+  --primary: #4c8dff;
+  --primary-hover: #6ba1ff;
+  --on-primary: #050609;
+  --primary-subtle: #0e1a2e;
 
-  --secondary: #60a5fa;
-  --on-secondary: #0a0c10;
+  --secondary: #4c8dff;
+  --on-secondary: #050609;
 
-  --accent: #d9a441;
-  --accent-hover: #e5b660;
-  --accent-subtle: #241c0d;
-  --on-accent: #17130a;
+  --accent: #4c8dff;
+  --accent-hover: #6ba1ff;
+  --accent-subtle: #0e1a2e;
+  --on-accent: #050609;
 
-  --border: #252b34;
-  --border-strong: #39414d;
+  --live: #38bdf8;
+  --live-subtle: #072130;
+
+  --border: #1e232b;
+  --border-strong: #2c333d;
   --input: #626b7a;
-  --ring: #7fa8d9;
+  --ring: #4c8dff;
 
   --destructive: #f2776b;
   --destructive-subtle: #2a1512;
@@ -198,15 +237,18 @@
 
   --success: #56d391;
   --success-subtle: #0e2418;
+
   --warning: #e5b660;
   --warning-subtle: #241c0d;
+  --on-warning: #17130a;
 
   --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.5);
   --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.55);
   --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.6);
   --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.7);
 
-  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline: rgba(255, 255, 255, 0.06);
+  --grid-line: rgba(255, 255, 255, 0.022);
 }
 
 /* ============================================================
@@ -230,6 +272,9 @@
   --duration-slow: 320ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Hover lift. Overridden per component; see `.lift`. */
+  --lift-scale: 1;
 }
 
 @theme inline {
@@ -245,6 +290,7 @@
   --color-on-ink: var(--on-ink);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-subtle: var(--primary-subtle);
   --color-on-primary: var(--on-primary);
   --color-secondary: var(--secondary);
   --color-on-secondary: var(--on-secondary);
@@ -253,6 +299,9 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-subtle: var(--accent-subtle);
   --color-on-accent: var(--on-accent);
+
+  --color-live: var(--live);
+  --color-live-subtle: var(--live-subtle);
 
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
@@ -270,8 +319,10 @@
   --color-success-subtle: var(--success-subtle);
   --color-warning: var(--warning);
   --color-warning-subtle: var(--warning-subtle);
+  --color-on-warning: var(--on-warning);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
   --radius-sm: calc(var(--radius) - 2px);
@@ -295,30 +346,38 @@
  * Element defaults live in `@layer base` so that a utility can override them.
  * Unlayered CSS beats every layered rule regardless of specificity, so a bare
  * `h2 { color: … }` here would silently defeat `text-on-ink` on the ink panels
- * and render a near-black heading on navy. Layer membership is load-bearing.
+ * and render a near-black heading on near-black. Layer membership is
+ * load-bearing, not stylistic.
  */
 @layer base {
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-synthesis-weight: none;
   }
 
   /*
-   * Headings carry the academic character. Tight tracking keeps a large serif
-   * from reading as decorative.
+   * Headings are the instrument's voice: tight, dense, engineered. The
+   * scholarly serif is not here — it belongs to `.document`, which is the one
+   * place an actual academic document is being written.
    */
   h1,
   h2,
   h3,
-  h4 {
-    font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
+  h4,
+  h5,
+  h6 {
     color: var(--foreground);
     text-wrap: balance;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.021em;
+    font-weight: 600;
+  }
+
+  h1 {
+    letter-spacing: -0.032em;
   }
 
   p {
@@ -326,11 +385,145 @@
   }
 }
 
+/* ------------------------------------------------------------
+   Form fields
+
+   One definition, in the components layer so Tailwind utilities still win — a
+   caller can still override the border for an error state without fighting
+   specificity. It deliberately does NOT set height or padding: those vary
+   between a single-line input, a textarea and a select, and baking them in
+   here is what would force callers back to hand-rolled class strings.
+
+   This exists because the same eleven-class input string was copied across
+   eleven files, which is how a focus ring ends up correct in ten of them.
+   ------------------------------------------------------------ */
+
+@layer components {
+  .field {
+    width: 100%;
+    border-radius: var(--radius);
+    border: 1px solid var(--input);
+    background: var(--card);
+    color: var(--foreground);
+    outline: none;
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .field::placeholder {
+    color: var(--subtle-foreground);
+  }
+
+  .field:hover:not(:disabled):not(:focus-visible) {
+    border-color: var(--border-strong);
+  }
+
+  .field:focus-visible {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 28%, transparent);
+    /* Kept alongside the glow: box-shadow is dropped under forced colours. */
+    outline: 1px solid var(--ring);
+    outline-offset: 0;
+  }
+
+  /* Driven by the same attribute assistive technology reads, so the colour
+     and the announcement can never disagree. */
+  .field[aria-invalid="true"] {
+    border-color: var(--destructive);
+  }
+
+  .field[aria-invalid="true"]:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 26%, transparent);
+    outline-color: var(--destructive);
+  }
+
+  .field:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+/* ------------------------------------------------------------
+   Type registers
+   ------------------------------------------------------------ */
+
+/*
+ * The technical register. Every figure the product reports — percentages,
+ * word counts, step numbers, statuses, identifiers — is set here. This carries
+ * more of the "precision instrument" feeling than the accent colour does:
+ * numbers in a monospace face read as measured rather than written.
+ */
+.mono,
+.mono-figure {
+  font-family: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  font-feature-settings: "ss01";
+}
+
+/* A small uppercase label: section headers in the nav, field group titles. */
+.label-caps {
+  font-family: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--subtle-foreground);
+}
+
+/*
+ * The document register — the artifact, not the instrument.
+ *
+ * Everything inside is set in the scholarly serif at a measured width. This is
+ * the ONLY place the serif appears, which is what keeps it meaningful: it
+ * signals "this is your project" rather than "this is decoration".
+ */
+.document {
+  font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
+  font-size: 1.1875rem;
+  line-height: 1.75;
+  letter-spacing: 0;
+}
+
+.document h1,
+.document h2,
+.document h3,
+.document h4 {
+  font-family: var(--font-eb-garamond), ui-serif, Georgia, serif;
+  letter-spacing: -0.012em;
+  font-weight: 600;
+}
+
+/* The reading measure. Beyond ~70 characters the eye loses the line return. */
+.measure {
+  max-width: 68ch;
+}
+
 /* Figures line up in columns wherever they are compared. */
 .tabular,
 table td,
 table th {
   font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------
+   The blueprint grid
+
+   The metaphor, made literal — and kept at the very edge of perception on
+   purpose. At these opacities it is felt as texture rather than seen as a
+   grid, which is the difference between a drafting table and graph paper.
+   ------------------------------------------------------------ */
+
+.blueprint {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  /* Anchored to the top-left so the grid lines up across scrolled panes. */
+  background-position: 0 0;
 }
 
 /* ------------------------------------------------------------
@@ -358,8 +551,8 @@ table th {
    Motion
 
    Entrances are sequenced rather than simultaneous, which is what reads as
-   engineered rather than merely animated. Nothing here loops: an infinite
-   animation belongs to a loading indicator, never to decoration.
+   engineered rather than merely animated. Nothing loops except indicators
+   bound to real in-progress state.
 
    Every rule below is switched off wholesale by the reduced-motion block
    further down, which renders the final state immediately.
@@ -419,6 +612,136 @@ table th {
   box-shadow: var(--elevation-1), inset 0 1px 0 0 var(--hairline);
 }
 
+/*
+ * Card lift.
+ *
+ * Scale is opt-in through `--lift-scale` rather than baked in: 1.01 on a small
+ * tile is a crisp nudge, but on a 600px-wide card it is six pixels of text
+ * resampling, which reads as blur rather than polish. Large surfaces take the
+ * translate and the elevation step only.
+ */
+.lift {
+  transition:
+    box-shadow var(--duration-base) var(--ease-out),
+    translate var(--duration-base) var(--ease-out),
+    scale var(--duration-base) var(--ease-out),
+    border-color var(--duration-base) var(--ease-out);
+}
+
+.lift:hover {
+  translate: 0 -2px;
+  scale: var(--lift-scale);
+  box-shadow: var(--elevation-3), inset 0 1px 0 0 var(--hairline);
+}
+
+/* Small tiles opt into the scale. */
+.lift-scale {
+  --lift-scale: 1.01;
+}
+
+/*
+ * Live indicator. Attached ONLY where real state says something is running —
+ * a generation job, a document extraction. A pulse that is always on is
+ * decoration pretending to be information.
+ */
+@keyframes pulse-live {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--live) 45%, transparent);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--live) 0%, transparent);
+  }
+}
+
+.pulse-live {
+  animation: pulse-live 2s var(--ease-in-out) infinite;
+}
+
+/* Skeleton sweep, for content that is genuinely still loading. */
+@keyframes shimmer {
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    color-mix(in oklab, var(--muted) 55%, var(--surface-raised)) 50%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Dialog entrance — the command palette and sheets. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.985;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+.rise-in {
+  animation: rise-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes sheet-up {
+  from {
+    translate: 0 100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+.sheet-up {
+  animation: sheet-up var(--duration-base) var(--ease-out);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fade-in var(--duration-fast) var(--ease-out);
+}
+
+/* ------------------------------------------------------------
+   Focus
+   ------------------------------------------------------------ */
+
+/*
+ * The soft ring. Used on controls that carry their own border, where a hard
+ * outline sitting two pixels off the edge looks bolted on.
+ *
+ * It is a companion to `:focus-visible`, never a replacement: the outline rule
+ * below still applies to everything, so focus remains visible even if a
+ * component forgets to opt in, and remains visible under forced-colours where
+ * box-shadow is dropped entirely.
+ */
+.focus-glow:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 0;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 28%, transparent);
+  border-color: var(--ring);
+}
+
 /* Visible focus for keyboard users — never removed. */
 :focus-visible {
   outline: 2px solid var(--ring);
@@ -443,7 +766,15 @@ table th {
     color var(--duration-base) var(--ease-in-out) !important;
 }
 
-/* Respect reduced-motion: all non-essential motion is dropped. */
+/* ------------------------------------------------------------
+   Reduced motion
+
+   Everything non-essential stops. The two critical cases: content waiting on
+   the scroll observer must be shown, or it stays invisible forever; and the
+   live pulse must come to rest at full opacity rather than mid-fade, so the
+   indicator it belongs to is still readable.
+   ------------------------------------------------------------ */
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -454,10 +785,6 @@ table th {
     scroll-behavior: auto !important;
   }
 
-  /*
-   * Critical: without this, content that waits for an observer would stay
-   * invisible forever for anyone who has asked for less motion.
-   */
   .reveal {
     opacity: 1 !important;
     translate: none !important;
@@ -465,6 +792,20 @@ table th {
 
   .reveal .draw-rule {
     scale: 1 1 !important;
+  }
+
+  .pulse-live {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .shimmer {
+    animation: none !important;
+  }
+
+  .lift:hover {
+    translate: none !important;
+    scale: 1 !important;
   }
 }
 
@@ -484,4 +825,10 @@ table th {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--elevation-3);
+}
+
+/* Scrollbars, so a dark pane does not get a bright system gutter. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }

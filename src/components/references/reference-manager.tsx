@@ -41,12 +41,7 @@ export interface ReferenceRow {
   citationCount: number;
 }
 
-const inputClass = [
-  "h-11 w-full rounded-md border border-input bg-card px-3 text-base",
-  "transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground",
-  "hover:border-border-strong focus-visible:border-ring",
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-].join(" ");
+const inputClass = "h-11 w-full field px-3 text-base";
 
 /**
  * Reference manager.
@@ -245,7 +240,7 @@ export function ReferenceManager({
             aria-describedby="paste-hint"
             onChange={(event) => setPasted(event.target.value)}
             placeholder={"Okeke, A. (2026). Study habits and performance. Journal of Education, 4(2), 11-20."}
-            className="mt-2 w-full rounded-md border border-input bg-card p-3 text-sm transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="mt-2 w-full field p-3 text-sm"
           />
           <Button className="mt-3" onClick={doImport} disabled={pending !== null || !pasted.trim()}>
             {pending === "import" ? (

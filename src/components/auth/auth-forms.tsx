@@ -36,13 +36,7 @@ function Field({
         autoComplete={autoComplete}
         required={required}
         aria-describedby={hint ? `${id}-hint` : undefined}
-        className={[
-          "h-11 w-full rounded-md border border-input bg-card px-3 text-base",
-          "transition-[border-color,box-shadow] duration-150",
-          "placeholder:text-subtle-foreground",
-          "hover:border-border-strong",
-          "focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        ].join(" ")}
+        className={"h-11 w-full field px-3 text-base"}
       />
       {hint ? (
         <p id={`${id}-hint`} className="text-sm text-muted-foreground">
