@@ -5,6 +5,7 @@ import { PencilLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
+import { ExportPanel } from "@/components/export/export-panel";
 import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
@@ -98,6 +99,22 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     where: { projectId: id, status: { in: ["QUEUED", "RUNNING"] } },
     select: { id: true },
   });
+
+  // Counted here so the export panel can say what is still outstanding before
+  // a student downloads a document with gaps in it.
+  const placeholderCount = await prisma.sectionPlaceholder.count({
+    where: { resolved: false, section: { projectId: id } },
+  });
+
+  // Phrased for the student, and derived from the same resolver the pipeline
+  // uses, so the reason shown here is the reason an export would actually give.
+  const denialReason = exportPolicy.allowed
+    ? null
+    : exportPolicy.reason === "DEMO_REQUIRES_PAID_PLAN"
+      ? "Exporting a sample project is part of the paid plan. Upgrade to download it, or create your own project and export that."
+      : exportPolicy.reason === "NOT_OWNER"
+        ? "This project belongs to someone else."
+        : "Exporting is not included in your current plan.";
 
   const methodologyForm = METHODOLOGY_FORMS[methodologyKeyFor(p.projectType)];
   const methodologyData = (p.methodology?.data ?? {}) as Record<string, string | string[]>;
@@ -243,6 +260,16 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
           />
         </div>
       )}
+
+      <div className="mt-8">
+        <ExportPanel
+          projectId={id}
+          allowed={exportPolicy.allowed}
+          denialReason={denialReason}
+          willCarryDisclaimer={exportPolicy.allowed && exportPolicy.disclaimer}
+          placeholderCount={placeholderCount}
+        />
+      </div>
 
       <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-6">
         <Button asChild variant="outline">
