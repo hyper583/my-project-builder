@@ -48,7 +48,13 @@
   --foreground: #0b0d12;
   --muted: #eef0f3;
   --muted-foreground: #5a616d;
-  --subtle-foreground: #6b7280;
+  /*
+   * Dark enough to clear 4.5:1 against `--primary-subtle`, not just against
+   * white. Measured at 4.23:1 on the workspace's active section row before
+   * this — the tinted backgrounds are the binding constraint on this token,
+   * because that is where the smallest type in the product sits.
+   */
+  --subtle-foreground: #646b78;
 
   /*
    * Ink — reserved for large colour FIELDS (the auth panel, the closing call

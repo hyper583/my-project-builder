@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { StatusDot } from "@/components/ui/status-dot";
 import { StepIntro } from "@/components/wizard/fields";
 import { deleteDocument } from "@/server/actions/documents";
 
@@ -48,18 +49,36 @@ function formatSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/**
+ * What the product has made of an uploaded file.
+ *
+ * The stages are the `ExtractionStatus` enum exactly — queued, reading, read —
+ * so the label always describes the row that is actually in the database. It
+ * is stated in the product's own terms rather than the pipeline's, because
+ * "understood" is what a student is actually asking about; "COMPLETE" tells
+ * them a job finished, not that the file is now usable.
+ *
+ * Only PROCESSING animates, and it says out loud what is being done. The two
+ * failure modes keep their existing meanings: UNSUPPORTED is a file whose text
+ * cannot be reached, FAILED is one where reading was attempted and broke.
+ */
 function StatusBadge({ doc }: { doc: UploadedDocument }) {
   if (doc.extractionStatus === "COMPLETE") {
     return (
       <span className="inline-flex items-center gap-1.5 text-sm text-success">
         <CheckCircle2 className="size-3.5" aria-hidden="true" />
-        Text read{doc.chunks > 0 ? ` — ${doc.chunks} sections indexed` : ""}
+        Understood
+        {doc.chunks > 0 ? (
+          <span className="mono text-xs text-subtle-foreground">
+            {doc.chunks} section{doc.chunks === 1 ? "" : "s"} indexed
+          </span>
+        ) : null}
       </span>
     );
   }
   if (doc.extractionStatus === "UNSUPPORTED") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 text-sm text-warning">
         <AlertCircle className="size-3.5" aria-hidden="true" />
         Stored, text not read
       </span>
@@ -73,7 +92,20 @@ function StatusBadge({ doc }: { doc: UploadedDocument }) {
       </span>
     );
   }
-  return <span className="text-sm text-muted-foreground">Processing…</span>;
+  if (doc.extractionStatus === "PROCESSING") {
+    return (
+      <span role="status" className="inline-flex items-center gap-2 text-sm text-live">
+        <StatusDot status="PROCESSING" />
+        Analysing…
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+      <StatusDot status="PENDING" />
+      Queued
+    </span>
+  );
 }
 
 export function MaterialsStep({
@@ -173,12 +205,23 @@ export function MaterialsStep({
           setDragging(false);
           void upload(e.dataTransfer.files);
         }}
-        className={`rounded-lg border-2 border-dashed p-8 text-center transition-colors duration-200 ${
-          dragging ? "border-primary bg-primary/5" : "border-border"
+        // Dashed while it waits, solid the moment it can accept — the border
+        // itself answers "will this work if I let go here?".
+        className={`blueprint rounded-xl border p-8 text-center transition-[border-color,background-color,border-style] duration-200 ${
+          dragging
+            ? "border-primary border-solid bg-primary-subtle"
+            : "border-dashed border-border-strong hover:border-border-strong hover:bg-surface-sunken/40"
         }`}
       >
-        <Upload className="mx-auto size-7 text-muted-foreground" aria-hidden="true" />
-        <p className="mt-3 font-medium">Drag files here, or choose them</p>
+        <Upload
+          className={`mx-auto size-7 transition-colors duration-200 ${
+            dragging ? "text-primary" : "text-subtle-foreground"
+          }`}
+          aria-hidden="true"
+        />
+        <p className="mt-3 font-medium">
+          {dragging ? "Drop to upload" : "Drag files here, or choose them"}
+        </p>
         <p className="mt-1 text-sm text-muted-foreground">
           PDF, Word (.docx), plain text and images. Up to 25MB each.
         </p>

@@ -264,7 +264,9 @@ export function SectionEditor({
     editorProps: {
       attributes: {
         class:
-          "prose-editor min-h-[24rem] px-4 py-5 outline-none [&_p]:mb-4 [&_p]:leading-relaxed [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_a]:text-primary [&_a]:underline",
+          // Padding now lives on the `.document` wrapper, which also owns the
+          // reading measure — the editor surface itself just fills it.
+          "prose-editor min-h-[24rem] outline-none [&_p]:mb-5 [&_h2]:mt-8 [&_h2]:mb-2.5 [&_h2]:text-[1.375rem] [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.1875rem] [&_h3]:font-semibold [&_ul]:mb-5 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mb-5 [&_ol]:list-decimal [&_ol]:pl-6 [&_table]:my-5 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:bg-muted [&_th]:p-2 [&_a]:text-primary [&_a]:underline",
       },
     },
     onUpdate({ editor: instance }) {
@@ -332,22 +334,33 @@ export function SectionEditor({
           the page heading, and a section is a level below it. Two h1s on one
           page leaves a screen reader with no single answer to "what is this?".
         */}
-        <h2 className="font-serif text-2xl font-semibold">
+        {/* Chrome, so sans: the serif starts below, where the document does. */}
+        <h2 className="flex items-baseline gap-2.5 text-base font-semibold tracking-[-0.018em]">
           {section.number ? (
-            <span className="tabular mr-2 text-muted-foreground">{section.number}</span>
+            <span className="mono text-[0.6875rem] font-medium text-subtle-foreground">
+              {section.number}
+            </span>
           ) : null}
           {section.title}
         </h2>
         {section.placeholders > 0 ? (
           <span className="flex items-center gap-1.5 rounded-full bg-warning-subtle px-2.5 py-0.5 text-xs font-medium text-warning">
             <TriangleAlert className="size-3" aria-hidden="true" />
-            {section.placeholders} needing your data
+            <span className="mono">{section.placeholders}</span> needing your data
           </span>
         ) : null}
       </div>
       <Toolbar editor={editor} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <EditorContent editor={editor} />
+      {/*
+       * The document itself. `.document` is the only place the scholarly serif
+       * appears, and `.measure` caps the line length — past about seventy
+       * characters the eye starts losing the line return, and this is the one
+       * surface in the product people read continuously rather than scan.
+       */}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-background">
+        <div className="document measure mx-auto px-6 py-8 sm:px-8">
+          <EditorContent editor={editor} />
+        </div>
       </div>
       <SaveIndicator state={state} words={words} />
     </div>
