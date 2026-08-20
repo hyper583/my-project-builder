@@ -48,7 +48,9 @@ test.describe("demo mode and academic integrity", () => {
     await page.waitForURL(/\/projects\/[^/]+\/blueprint/, { timeout: 60_000 });
 
     await page.goto("/dashboard");
-    await expect(page.getByText("Sample project", { exact: true })).toBeVisible();
+    // The card pill. Amber, and the only place that word appears alone —
+    // the launcher copy around it is a full sentence.
+    await expect(page.getByText("Sample", { exact: true })).toBeVisible();
   });
 
   test("with no AI provider configured the app says so instead of faking output", async ({
@@ -69,7 +71,7 @@ test.describe("demo mode and academic integrity", () => {
     await expect(input).toHaveAttribute("placeholder", /isn't configured/i);
 
     // Selection actions are unavailable for the same reason, and say why.
-    await page.getByRole("tab", { name: "Selection actions" }).click();
+    await page.getByRole("tab", { name: "Selection" }).click();
     await expect(page.getByText(/AI isn't configured on this installation/i)).toBeVisible();
   });
 });

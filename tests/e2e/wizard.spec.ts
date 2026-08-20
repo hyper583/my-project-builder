@@ -64,7 +64,9 @@ test.describe("project setup wizard", () => {
 
     for (const step of [1, 4, 6, 9]) {
       await page.goto(`/projects/${projectId}/wizard/${step}`);
-      await expect(page.getByText(new RegExp(`Step ${step} of 9`))).toBeVisible();
+      // The header states the phase and the step; the rail groups the nine
+      // steps into four phases, so "STEP n/9" is where the number now lives.
+      await expect(page.getByText(new RegExp(`STEP ${step}/9`))).toBeVisible();
     }
 
     // The sidebar marks the project section it is in.

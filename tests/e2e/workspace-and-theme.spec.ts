@@ -63,31 +63,41 @@ test.describe("theme", () => {
 
     const root = page.locator("html");
 
-    // "System" is the default: no attribute is written at all.
-    await expect(root).not.toHaveAttribute("data-theme", /.+/);
-
-    await page.getByRole("button", { name: "Dark theme" }).first().click();
+    // Dark is the product default: with nothing stored, the pre-paint script
+    // stamps it rather than deferring to the OS.
     await expect(root).toHaveAttribute("data-theme", "dark");
+
+    await page.getByRole("button", { name: "Light theme" }).first().click();
+    await expect(root).toHaveAttribute("data-theme", "light");
 
     await page.reload();
-    await expect(root).toHaveAttribute("data-theme", "dark");
+    await expect(root).toHaveAttribute("data-theme", "light");
 
     // aria-pressed must agree with what is on screen. This is the hydration
     // bug that once left the control permanently misreporting itself.
-    await expect(page.getByRole("button", { name: "Dark theme" }).first()).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "Light theme" }).first()).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    await expect(page.getByRole("button", { name: "Light theme" }).first()).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "Dark theme" }).first()).toHaveAttribute(
       "aria-pressed",
       "false",
     );
 
-    // Returning to "system" removes the attribute rather than storing a guess.
+    // "System" removes the attribute rather than storing a guess about the OS.
     await page.getByRole("button", { name: "System theme" }).first().click();
     await expect(root).not.toHaveAttribute("data-theme", /.+/);
+
+    // And it SURVIVES a reload. This is the assertion that matters most now
+    // that absence means "never chosen": if the choice were stored by clearing
+    // the key, the script would read an empty slot on the next visit and
+    // silently convert a deliberate "follow my OS" into dark.
     await page.reload();
     await expect(root).not.toHaveAttribute("data-theme", /.+/);
+    await expect(page.getByRole("button", { name: "System theme" }).first()).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });
 

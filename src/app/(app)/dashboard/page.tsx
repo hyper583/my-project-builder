@@ -60,20 +60,23 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 sm:py-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold">My Projects</h1>
-          <p className="mt-1.5 leading-relaxed text-muted-foreground">
+          <p className="label-caps">Workspace</p>
+          <h1 className="mt-2 text-[2rem] leading-none font-semibold tracking-[-0.035em]">
+            My Projects
+          </h1>
+          <p className="mt-2.5 leading-relaxed text-muted-foreground">
             Welcome back, {user.name.split(" ")[0]}. Your work saves as you go.
           </p>
         </div>
         <Link
           href="/settings"
-          className="rounded-full border border-border px-3 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase transition-colors duration-150 hover:border-border-strong hover:text-foreground"
+          className="mono focus-glow rounded-full border border-border px-2.5 py-1 text-[0.625rem] font-medium tracking-[0.08em] text-muted-foreground uppercase transition-colors duration-150 hover:border-border-strong hover:text-foreground"
         >
           {plan.label} plan
         </Link>
       </header>
 
-      <dl className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           icon={FolderOpen}
           label="Active projects"
@@ -122,19 +125,23 @@ function Stat({
   tone?: "default" | "warning";
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 elevated-1">
-      <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div className="lift lift-scale rounded-xl border border-border bg-card p-4 elevated-1 hover:border-border-strong">
+      <dt className="flex items-center gap-2 text-[0.8125rem] text-muted-foreground">
         <Icon
-          className={`size-4 ${tone === "warning" ? "text-warning" : "text-subtle-foreground"}`}
+          className={`size-3.5 ${tone === "warning" ? "text-warning" : "text-subtle-foreground"}`}
           aria-hidden="true"
         />
         {label}
       </dt>
-      <dd className="mt-2">
-        <span className="tabular font-serif text-3xl leading-none font-semibold">
+      <dd className="mt-3">
+        <span
+          className={`mono-figure text-[2rem] leading-none font-medium ${
+            tone === "warning" ? "text-warning" : ""
+          }`}
+        >
           <CountUp value={value} />
         </span>
-        <span className="mt-1.5 block text-xs text-subtle-foreground">{detail}</span>
+        <span className="mt-2 block text-xs text-subtle-foreground">{detail}</span>
       </dd>
     </div>
   );

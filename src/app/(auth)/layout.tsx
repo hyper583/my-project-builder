@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Check } from "lucide-react";
 
+import { Wordmark } from "@/components/shell/wordmark";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const ASSURANCES = [
@@ -34,16 +35,8 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
 
         <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
           <div className="w-full max-w-sm">
-            <Link href="/" className="flex items-center gap-2.5">
-              <span
-                aria-hidden="true"
-                className="flex size-8 items-center justify-center rounded-md bg-primary font-serif text-base font-semibold text-on-primary"
-              >
-                M
-              </span>
-              <span className="font-serif text-lg font-semibold tracking-tight">
-                My Project Builder
-              </span>
+            <Link href="/" className="focus-glow inline-flex rounded-md">
+              <Wordmark nameClassName="text-base" />
             </Link>
 
             <div className="mt-8">{children}</div>
@@ -52,26 +45,30 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </div>
 
       {/* The ink field. Used once per page at most, which is what gives it weight. */}
-      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-ink px-12 py-14 lg:flex">
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-l border-border bg-ink px-12 py-14 lg:flex">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-16 w-px bg-on-ink/15"
+          className="pointer-events-none absolute inset-y-0 right-16 w-px bg-on-ink/12"
         />
 
-        <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.18em] text-on-ink/70 uppercase">
-          <span aria-hidden="true" className="h-px w-8 bg-on-ink/30" />
+        <p className="mono flex items-center gap-3 text-[0.6875rem] font-medium tracking-[0.14em] text-on-ink/60 uppercase">
+          <span aria-hidden="true" className="h-px w-8 bg-on-ink/25" />
           Academic project workspace
         </p>
 
         <div className="relative max-w-md">
-          <blockquote className="font-serif text-3xl leading-tight font-semibold text-on-ink xl:text-4xl">
-            Your project is built around the information you provide — not from a topic alone.
+          <blockquote className="text-[1.75rem] leading-[1.25] font-semibold tracking-[-0.028em] text-on-ink xl:text-[2rem]">
+            Your project is built around the information you provide — not from
+            a topic alone.
           </blockquote>
 
           <ul className="mt-10 space-y-3">
             {ASSURANCES.map((item) => (
               <li key={item} className="flex items-start gap-3 text-on-ink/85">
-                <Check className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+                <Check
+                  className="mt-0.5 size-4 shrink-0 text-accent"
+                  aria-hidden="true"
+                />
                 <span className="leading-relaxed">{item}</span>
               </li>
             ))}

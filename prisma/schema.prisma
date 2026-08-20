@@ -574,6 +574,15 @@ model GenerationJob {
   attempts    Int       @default(0)
   maxAttempts Int       @default(3)
 
+  /// The AI provider this job was queued for, e.g. "anthropic" or "mock".
+  /// A worker may only claim a job matching its OWN provider. Without this a
+  /// worker left running from an earlier session — holding whatever
+  /// AI_PROVIDER its process loaded at startup — can claim a job intended for
+  /// a different one and write its output into the project. That happened:
+  /// a stale mock worker claimed a retry and filled a REAL project with
+  /// placeholder text, and the job still reported SUCCEEDED.
+  provider String @default("")
+
   lockedAt  DateTime?
   lockedBy  String?
   heartbeat DateTime?

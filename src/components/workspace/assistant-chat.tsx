@@ -202,7 +202,7 @@ export function AssistantChat({
                 void send();
               }
             }}
-            className="max-h-40 min-h-[3rem] flex-1 resize-y rounded-md border border-input bg-card px-3 py-2 text-sm transition-[border-color] duration-150 outline-none placeholder:text-subtle-foreground hover:border-border-strong focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+            className="max-h-40 min-h-[3rem] flex-1 resize-y field px-3 py-2 text-sm disabled:opacity-50"
           />
           {busy ? (
             <button
