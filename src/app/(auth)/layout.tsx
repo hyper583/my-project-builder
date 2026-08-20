@@ -45,7 +45,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </div>
 
       {/* The ink field. Used once per page at most, which is what gives it weight. */}
-      <aside className="blueprint relative hidden w-1/2 flex-col justify-between overflow-hidden border-l border-border bg-ink px-12 py-14 lg:flex">
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-l border-border bg-ink px-12 py-14 lg:flex">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-y-0 right-16 w-px bg-on-ink/12"
@@ -58,13 +58,17 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
 
         <div className="relative max-w-md">
           <blockquote className="text-[1.75rem] leading-[1.25] font-semibold tracking-[-0.028em] text-on-ink xl:text-[2rem]">
-            Your project is built around the information you provide — not from a topic alone.
+            Your project is built around the information you provide — not from
+            a topic alone.
           </blockquote>
 
           <ul className="mt-10 space-y-3">
             {ASSURANCES.map((item) => (
               <li key={item} className="flex items-start gap-3 text-on-ink/85">
-                <Check className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+                <Check
+                  className="mt-0.5 size-4 shrink-0 text-accent"
+                  aria-hidden="true"
+                />
                 <span className="leading-relaxed">{item}</span>
               </li>
             ))}

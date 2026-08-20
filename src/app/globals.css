@@ -109,16 +109,17 @@
    * Elevation. In light mode depth is cast shadow, tuned tight and neutral —
    * two layers so the shape reads at both close and far distance.
    */
-  --elevation-1: 0 1px 2px rgba(11, 13, 18, 0.05), 0 1px 1px rgba(11, 13, 18, 0.03);
-  --elevation-2: 0 2px 4px rgba(11, 13, 18, 0.05), 0 4px 12px rgba(11, 13, 18, 0.05);
-  --elevation-3: 0 4px 8px rgba(11, 13, 18, 0.05), 0 12px 28px rgba(11, 13, 18, 0.08);
-  --elevation-4: 0 8px 16px rgba(11, 13, 18, 0.06), 0 24px 56px rgba(11, 13, 18, 0.12);
+  --elevation-1:
+    0 1px 2px rgba(11, 13, 18, 0.05), 0 1px 1px rgba(11, 13, 18, 0.03);
+  --elevation-2:
+    0 2px 4px rgba(11, 13, 18, 0.05), 0 4px 12px rgba(11, 13, 18, 0.05);
+  --elevation-3:
+    0 4px 8px rgba(11, 13, 18, 0.05), 0 12px 28px rgba(11, 13, 18, 0.08);
+  --elevation-4:
+    0 8px 16px rgba(11, 13, 18, 0.06), 0 24px 56px rgba(11, 13, 18, 0.12);
 
   /* Top highlight — carries elevation in dark mode; inert here. */
   --hairline: transparent;
-
-  /* The blueprint grid. Barely there by design — see `.blueprint`. */
-  --grid-line: rgba(11, 13, 18, 0.035);
 }
 
 /* ============================================================
@@ -194,7 +195,6 @@
     --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.7);
 
     --hairline: rgba(255, 255, 255, 0.06);
-    --grid-line: rgba(255, 255, 255, 0.022);
   }
 }
 
@@ -254,7 +254,6 @@
   --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.7);
 
   --hairline: rgba(255, 255, 255, 0.06);
-  --grid-line: rgba(255, 255, 255, 0.022);
 }
 
 /* ============================================================
@@ -328,7 +327,8 @@
   --color-on-warning: var(--on-warning);
 
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
 
   --radius-sm: calc(var(--radius) - 2px);
@@ -441,7 +441,8 @@
   }
 
   .field[aria-invalid="true"]:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 26%, transparent);
+    box-shadow: 0 0 0 3px
+      color-mix(in oklab, var(--destructive) 26%, transparent);
     outline-color: var(--destructive);
   }
 
@@ -463,7 +464,8 @@
  */
 .mono,
 .mono-figure {
-  font-family: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  font-family:
+    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   font-feature-settings: "ss01";
@@ -471,7 +473,8 @@
 
 /* A small uppercase label: section headers in the nav, field group titles. */
 .label-caps {
-  font-family: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  font-family:
+    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.6875rem;
   line-height: 1;
   font-weight: 500;
@@ -516,23 +519,6 @@ table th {
 }
 
 /* ------------------------------------------------------------
-   The blueprint grid
-
-   The metaphor, made literal — and kept at the very edge of perception on
-   purpose. At these opacities it is felt as texture rather than seen as a
-   grid, which is the difference between a drafting table and graph paper.
-   ------------------------------------------------------------ */
-
-.blueprint {
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 32px 32px;
-  /* Anchored to the top-left so the grid lines up across scrolled panes. */
-  background-position: 0 0;
-}
-
-/* ------------------------------------------------------------
    Elevation utilities
 
    `.elevated` is the one place depth is defined, so light and dark stay in
@@ -541,16 +527,24 @@ table th {
    ------------------------------------------------------------ */
 
 .elevated-1 {
-  box-shadow: var(--elevation-1), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-1),
+    inset 0 1px 0 0 var(--hairline);
 }
 .elevated-2 {
-  box-shadow: var(--elevation-2), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-2),
+    inset 0 1px 0 0 var(--hairline);
 }
 .elevated-3 {
-  box-shadow: var(--elevation-3), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 0 var(--hairline);
 }
 .elevated-4 {
-  box-shadow: var(--elevation-4), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-4),
+    inset 0 1px 0 0 var(--hairline);
 }
 
 /* ------------------------------------------------------------
@@ -611,11 +605,15 @@ table th {
 }
 
 .press:hover {
-  box-shadow: var(--elevation-2), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-2),
+    inset 0 1px 0 0 var(--hairline);
 }
 
 .press:active {
-  box-shadow: var(--elevation-1), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-1),
+    inset 0 1px 0 0 var(--hairline);
 }
 
 /*
@@ -637,7 +635,9 @@ table th {
 .lift:hover {
   translate: 0 -2px;
   scale: var(--lift-scale);
-  box-shadow: var(--elevation-3), inset 0 1px 0 0 var(--hairline);
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 0 var(--hairline);
 }
 
 /* Small tiles opt into the scale. */

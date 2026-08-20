@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { StatusDot } from "@/components/ui/status-dot";
 import { createDemoProject } from "@/server/actions/demo";
-import { createProject, deleteProject, duplicateProject } from "@/server/actions/projects";
+import {
+  createProject,
+  deleteProject,
+  duplicateProject,
+} from "@/server/actions/projects";
 
 export interface ProjectCardData {
   id: string;
@@ -33,7 +37,13 @@ export interface ProjectCardData {
  * The dot pulses only while `status` is GENERATING, which is a real column, so
  * an animating card always means the worker is actually running.
  */
-function StatusPill({ status, kind }: { status: string; kind: "REAL" | "DEMO" }) {
+function StatusPill({
+  status,
+  kind,
+}: {
+  status: string;
+  kind: "REAL" | "DEMO";
+}) {
   if (kind === "DEMO") {
     return (
       <span className="mono shrink-0 rounded-full border border-warning/40 bg-warning-subtle px-2 py-0.5 text-[0.625rem] font-medium tracking-[0.06em] text-warning uppercase">
@@ -118,14 +128,20 @@ function DemoLauncher({ hasDemo }: { hasDemo: boolean }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 elevated-1">
       <div className="flex items-start gap-3">
-        <BookOpen className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
+        <BookOpen
+          className="mt-0.5 size-5 shrink-0 text-warning"
+          aria-hidden="true"
+        />
         <div>
           <p className="font-medium">
-            {hasDemo ? "You have a sample project" : "Not sure what you'll get?"}
+            {hasDemo
+              ? "You have a sample project"
+              : "Not sure what you'll get?"}
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Open a complete five-chapter sample to see how a finished project is organised. Its
-            findings are illustrative — it describes no real study.
+            Open a complete five-chapter sample to see how a finished project is
+            organised. Its findings are illustrative — it describes no real
+            study.
           </p>
           {error ? (
             <p role="alert" className="mt-1 text-sm text-destructive">
@@ -150,7 +166,9 @@ function DemoLauncher({ hasDemo }: { hasDemo: boolean }) {
           })
         }
       >
-        {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+        {pending ? (
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        ) : null}
         {hasDemo ? "Open sample project" : "Explore a sample project"}
       </Button>
     </div>
@@ -178,7 +196,11 @@ export function ProjectList({
         role="search"
         onSubmit={(event) => {
           event.preventDefault();
-          router.push(search.trim() ? `/dashboard?q=${encodeURIComponent(search.trim())}` : "/dashboard");
+          router.push(
+            search.trim()
+              ? `/dashboard?q=${encodeURIComponent(search.trim())}`
+              : "/dashboard",
+          );
         }}
       >
         <label htmlFor="project-search" className="sr-only">
@@ -202,7 +224,10 @@ export function ProjectList({
 
       {projects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border-strong bg-card/40 p-12 text-center">
-          <FolderOpen className="mx-auto size-7 text-muted-foreground" aria-hidden="true" />
+          <FolderOpen
+            className="mx-auto size-7 text-muted-foreground"
+            aria-hidden="true"
+          />
           <h2 className="mt-4 text-lg font-semibold">
             {query ? "No projects matched that search" : "No projects yet"}
           </h2>
@@ -230,7 +255,7 @@ export function ProjectList({
                * lands at a different height on every card and the grid stops
                * reading as a set of equivalent things.
                */}
-              <div className="blueprint flex h-[5.75rem] flex-col justify-between border-b border-border bg-surface-sunken/60 px-5 pt-4 pb-3">
+              <div className="flex h-[5.75rem] flex-col justify-between border-b border-border bg-surface-sunken/60 px-5 pt-4 pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="line-clamp-2 text-[0.9375rem] leading-snug font-semibold tracking-[-0.014em]">
                     <Link
@@ -246,7 +271,9 @@ export function ProjectList({
                   <StatusPill status={project.status} kind={project.kind} />
                 </div>
 
-                <p className="label-caps truncate">{project.department ?? "No department set"}</p>
+                <p className="label-caps truncate">
+                  {project.department ?? "No department set"}
+                </p>
               </div>
 
               <div className="flex flex-1 flex-col p-5">
@@ -262,11 +289,15 @@ export function ProjectList({
                     {/* Sans, not mono: tabular figures pad a date containing a
                         month name into an uneven rhythm. Mono is for numbers
                         that get compared down a column. */}
-                    <dd className="text-muted-foreground">{project.updatedAt}</dd>
+                    <dd className="text-muted-foreground">
+                      {project.updatedAt}
+                    </dd>
                   </div>
                   {project.lastGeneratedSection ? (
                     <div className="flex items-baseline justify-between gap-3">
-                      <dt className="shrink-0 text-subtle-foreground">Last built</dt>
+                      <dt className="shrink-0 text-subtle-foreground">
+                        Last built
+                      </dt>
                       <dd className="truncate text-right text-muted-foreground">
                         {project.lastGeneratedSection}
                       </dd>
@@ -292,38 +323,46 @@ export function ProjectList({
                 {/* `relative` lifts the controls above the stretched title
                     link, which would otherwise swallow their clicks. */}
                 <div className="relative mt-5 flex flex-wrap gap-2 pt-1">
-                <Button asChild size="sm">
-                  <Link href={`/projects/${project.id}`}>
-                    {project.status === "DRAFT" ? "Continue" : "Open"}
-                  </Link>
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={pendingId === project.id}
-                  onClick={async () => {
-                    setPendingId(project.id);
-                    const result = await duplicateProject({ projectId: project.id });
-                    setPendingId(null);
-                    if (result.ok) router.refresh();
-                  }}
-                >
-                  Duplicate
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={pendingId === project.id}
-                  onClick={async () => {
-                    if (!confirm(`Delete "${project.title}"? You can ask us to restore it later.`)) {
-                      return;
-                    }
-                    setPendingId(project.id);
-                    const result = await deleteProject({ projectId: project.id });
-                    setPendingId(null);
-                    if (result.ok) router.refresh();
-                  }}
-                >
+                  <Button asChild size="sm">
+                    <Link href={`/projects/${project.id}`}>
+                      {project.status === "DRAFT" ? "Continue" : "Open"}
+                    </Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pendingId === project.id}
+                    onClick={async () => {
+                      setPendingId(project.id);
+                      const result = await duplicateProject({
+                        projectId: project.id,
+                      });
+                      setPendingId(null);
+                      if (result.ok) router.refresh();
+                    }}
+                  >
+                    Duplicate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={pendingId === project.id}
+                    onClick={async () => {
+                      if (
+                        !confirm(
+                          `Delete "${project.title}"? You can ask us to restore it later.`,
+                        )
+                      ) {
+                        return;
+                      }
+                      setPendingId(project.id);
+                      const result = await deleteProject({
+                        projectId: project.id,
+                      });
+                      setPendingId(null);
+                      if (result.ok) router.refresh();
+                    }}
+                  >
                     Delete
                   </Button>
                 </div>
