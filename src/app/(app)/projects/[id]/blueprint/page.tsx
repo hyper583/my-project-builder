@@ -6,9 +6,12 @@ import { PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { ExportPanel } from "@/components/export/export-panel";
+import { ProjectHealthPanel } from "@/components/health/project-health";
 import { VersionHistory } from "@/components/versions/version-history";
 import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
+import { listIssues } from "@/server/services/consistency";
+import { computeHealth } from "@/server/services/health";
 import { listVersions } from "@/server/services/versions";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { aiConfigured } from "@/server/services/ai";
@@ -101,6 +104,12 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     where: { projectId: id, status: { in: ["QUEUED", "RUNNING"] } },
     select: { id: true },
   });
+
+  const [health, openIssues, dismissedIssues] = await Promise.all([
+    computeHealth(id),
+    listIssues(id, "OPEN"),
+    listIssues(id, "DISMISSED"),
+  ]);
 
   const versions = (await listVersions(id)).map((version) => ({
     id: version.id,
@@ -274,6 +283,25 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
           />
         </div>
       )}
+
+      <div className="mt-8">
+        <ProjectHealthPanel
+          projectId={id}
+          score={health.score}
+          band={health.band}
+          components={health.components}
+          issues={openIssues.map((issue) => ({
+            id: issue.id,
+            kind: issue.kind,
+            severity: issue.severity,
+            status: issue.status,
+            summary: issue.summary,
+            detail: issue.detail,
+            source: issue.source,
+          }))}
+          dismissedCount={dismissedIssues.length}
+        />
+      </div>
 
       <div className="mt-8">
         <VersionHistory projectId={id} versions={versions} />

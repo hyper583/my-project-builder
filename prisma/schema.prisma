@@ -184,6 +184,7 @@ model Project {
   generationJobs GenerationJob[]
   conversations  AIConversation[]
   exports        Export[]
+  issues         ConsistencyIssue[]
 
   @@index([userId, deletedAt])
   @@index([userId, status])
@@ -669,6 +670,62 @@ model AIMessage {
 
   @@index([conversationId, createdAt])
   @@map("ai_message")
+}
+
+// ============================================================
+// CONSISTENCY
+// ============================================================
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum IssueStatus {
+  OPEN
+  DISMISSED
+  RESOLVED
+}
+
+enum IssueSource {
+  /// Found by a deterministic rule. Free, instant and repeatable.
+  CHECK
+  /// Found by a model reading the prose. Advisory only.
+  AI
+}
+
+/// A contradiction or gap found in a project.
+///
+/// Findings are recorded for the student to decide on. Nothing here rewrites
+/// their research: an issue is a question raised, never a silent correction.
+model ConsistencyIssue {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  kind     String
+  source   IssueSource   @default(CHECK)
+  severity IssueSeverity
+  status   IssueStatus   @default(OPEN)
+
+  summary String
+  detail  String
+
+  /// Sections the finding refers to, for linking straight to them.
+  sectionIds String[] @default([])
+
+  /// Stable identity for one finding, so re-running an analysis updates the
+  /// existing row rather than creating a duplicate — and so an issue the
+  /// student has dismissed stays dismissed.
+  fingerprint String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, fingerprint])
+  @@index([projectId, status])
+  @@map("consistency_issue")
 }
 
 // ============================================================

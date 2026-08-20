@@ -72,6 +72,25 @@ export async function resetDatabase(): Promise<void> {
   }
 }
 
+/**
+ * Runs a query, reconnecting once if the connection was closed underneath it.
+ *
+ * PGLite drops the connection whenever a statement raises, and several tests
+ * deliberately provoke an error to prove a database constraint holds. The
+ * follow-up assertion then lands on a dead socket — intermittently, depending
+ * on pool timing, which is worse than failing every time. A real Postgres
+ * keeps the session, so this exists purely for the wasm test engine.
+ */
+export async function resilient<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch {
+    await db.$disconnect();
+    await db.$connect();
+    return run();
+  }
+}
+
 let counter = 0;
 
 export async function createUser(overrides: Partial<{ role: "STUDENT" | "ADMIN"; planTier: "FREE" | "PAID" }> = {}) {
