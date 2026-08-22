@@ -19,7 +19,8 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build",
-    "worker": "tsx --tsconfig tsconfig.worker.json worker/index.ts"
+    "worker": "tsx --tsconfig tsconfig.worker.json worker/index.ts",
+    "db:unstick": "node scripts/unstick-test-db.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.118.0",

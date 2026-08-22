@@ -40,7 +40,10 @@ test.describe("starting a project", () => {
     await page.getByRole("button", { name: "Create New Project" }).click();
     await expect(page.getByLabel("Project topic")).toBeVisible();
 
-    await page.getByRole("button", { name: "Cancel" }).click();
+    // `exact` matters: role-name matching is a case-insensitive substring, and
+    // this test's user is named "E2E cancel", so the account menu's label
+    // ("Account menu — E2E cancel") matches a loose "Cancel" too.
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
 
     await expect(page.getByLabel("Project topic")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Create New Project" })).toBeVisible();
