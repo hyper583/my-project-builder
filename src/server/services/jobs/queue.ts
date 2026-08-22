@@ -237,6 +237,32 @@ export async function failJob(
   return { willRetry };
 }
 
+/**
+ * Announces that this worker is alive and which provider it runs.
+ *
+ * Called on every poll, which is what lets the admin console tell "this job is
+ * stuck" apart from "nothing is running that could take it" — two states that
+ * are indistinguishable from the job row alone and need opposite fixes.
+ *
+ * Rows are never deleted when a worker exits. A worker that stopped is exactly
+ * the case worth seeing; a stale `lastSeen` is the signal, and deleting it
+ * would erase the evidence.
+ */
+export async function announceWorker(workerId: string, provider: string): Promise<void> {
+  try {
+    await prisma.workerHeartbeat.upsert({
+      where: { id: workerId },
+      create: { id: workerId, provider },
+      // `lastSeen` is @updatedAt, so it moves on any write.
+      update: { provider },
+    });
+  } catch {
+    // A worker must keep serving jobs even if it cannot announce itself. The
+    // console showing one fewer worker is a far smaller problem than the queue
+    // stopping.
+  }
+}
+
 export function newWorkerId(): string {
   return `${process.pid}-${randomUUID().slice(0, 8)}`;
 }

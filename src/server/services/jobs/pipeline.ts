@@ -17,6 +17,7 @@ import {
 } from "@/server/services/jobs/queue";
 import { isResultsChapter } from "@/server/services/jobs/stages";
 import { buildProjectMemory } from "@/server/services/memory";
+import { recordError } from "@/server/services/ops/record-error";
 
 /**
  * The staged generation pipeline.
@@ -401,6 +402,18 @@ export async function runGenerationJob(job: ClaimedJob): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const { willRetry } = await failJob(job.id, project.id, message);
+
+    // Persisted as well as logged. `job.error` holds the last message, but it
+    // is overwritten on the next attempt and disappears entirely once the job
+    // succeeds — so the console would show nothing for a run that failed twice
+    // and then worked, which is exactly the run worth looking at.
+    await recordError({
+      error,
+      origin: `generation:${job.id}`,
+      userId: project.userId,
+      projectId: project.id,
+    });
+
     console.error(
       `[worker] job ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`,
       willRetry ? "— will retry" : "— giving up",

@@ -22,7 +22,9 @@ const IDLE_LOG_EVERY = 30; // ~1 minute of silence between idle log lines
 
 async function main(): Promise<void> {
   // Imported after dotenv so env validation sees the loaded values.
-  const { claimNextJob, newWorkerId } = await import("@/server/services/jobs/queue");
+  const { announceWorker, claimNextJob, newWorkerId } = await import(
+    "@/server/services/jobs/queue",
+  );
   const { runGenerationJob } = await import("@/server/services/jobs/pipeline");
   const { ai } = await import("@/server/services/ai");
   const { prisma } = await import("@/server/db");
@@ -47,6 +49,11 @@ async function main(): Promise<void> {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
   while (!stopping) {
+    // Announced before claiming, so a worker that is polling but finding
+    // nothing still shows as online — that is precisely the case the console
+    // needs to distinguish from no worker at all.
+    await announceWorker(workerId, ai.name);
+
     let job = null;
     try {
       // Its own provider, so a worker left running from an earlier session
