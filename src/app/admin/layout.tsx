@@ -17,6 +17,7 @@ export const metadata: Metadata = { title: "Operations" };
 const ADMIN_NAV = [
   { href: "/admin", label: "Health" },
   { href: "/admin/users", label: "People" },
+  { href: "/admin/projects", label: "Projects" },
 ] as const;
 
 /**

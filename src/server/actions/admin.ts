@@ -279,3 +279,85 @@ export async function setUserPlan(input: unknown): Promise<ActionResult<null>> {
     return fail(error);
   }
 }
+
+/* ------------------------------------------------------------------
+   Project content
+   ------------------------------------------------------------------ */
+
+const projectSchema = z.object({ projectId: z.string().min(1) });
+
+export interface RevealedSection {
+  readonly id: string;
+  readonly number: string | null;
+  readonly title: string;
+  readonly content: string;
+  readonly words: number;
+}
+
+/**
+ * Returns what a student actually wrote, and records that it was read.
+ *
+ * This is the one capability in the console that reaches into someone's
+ * unpublished work, so the terms matter more than the mechanism:
+ *
+ * The audit row is written BEFORE the content is read out of the database. If
+ * the write fails the whole action fails and nothing is returned — access and
+ * the record of it are the same event, and an admin must not be able to end up
+ * having read something the trail does not show.
+ *
+ * It is an action rather than a page for the same reason. A route that audited
+ * on load would fire on Next's prefetch and on every refresh, recording page
+ * loads instead of decisions — which is both noisy and untrue. Pressing a
+ * button that says it will be recorded is a deliberate act; navigating is not.
+ *
+ * Read-only by construction: nothing here can write to a project, so support
+ * can investigate a complaint without ever being able to alter the work.
+ */
+export async function revealProjectContent(
+  input: unknown,
+): Promise<ActionResult<{ sections: RevealedSection[] }>> {
+  try {
+    const admin = await requireAdmin();
+    const { projectId } = projectSchema.parse(input);
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, title: true, kind: true, userId: true, user: { select: { email: true } } },
+    });
+    if (!project) throw new AppError("NOT_FOUND");
+
+    // Deliberately first. See the docblock.
+    await prisma.auditLog.create({
+      data: {
+        userId: admin.id,
+        action: "admin.project.read",
+        targetType: "project",
+        targetId: project.id,
+        metadata: {
+          projectTitle: project.title,
+          kind: project.kind,
+          ownerId: project.userId,
+          ownerEmail: project.user.email,
+        },
+      },
+    });
+
+    const sections = await prisma.projectSection.findMany({
+      where: { projectId: project.id, parentId: { not: null } },
+      orderBy: [{ parentId: "asc" }, { order: "asc" }],
+      select: { id: true, number: true, title: true, content: true, wordCount: true },
+    });
+
+    return ok({
+      sections: sections.map((section) => ({
+        id: section.id,
+        number: section.number,
+        title: section.title,
+        content: section.content ?? "",
+        words: section.wordCount,
+      })),
+    });
+  } catch (error) {
+    return fail(error);
+  }
+}

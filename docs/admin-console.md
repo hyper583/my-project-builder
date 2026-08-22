@@ -78,6 +78,31 @@ Only unexpected failures are recorded: `INTERNAL`, `AI_FAILED`,
 incidents under people typing things wrong and hitting their plan ceiling,
 which are normal events rather than faults.
 
+## How the content gate is actually built (D3)
+
+**An action, not a route.** A page that audited on load would fire on Next's
+prefetch and on every refresh, recording page loads rather than decisions. That
+is both noisy — the entries that matter become impossible to find — and untrue,
+since a prefetch is not somebody reading. Pressing a button that says it will be
+recorded is a deliberate act; navigating is not.
+
+**The audit row is written before the content is read.** If the write fails the
+whole action fails and nothing is returned. Access and the record of it are one
+event, so an admin cannot end up having read something the trail does not show.
+
+**Metadata cannot carry content.** `getProjectMetadata` is incapable of
+returning a section's prose, so a mistake in a page cannot put a student's
+writing on screen without the audit row meant to accompany it. The type says so;
+a test asserts it.
+
+**Read-only by construction.** Nothing in the admin path can write to a project.
+Support can investigate a complaint without being able to alter the work it is
+about.
+
+**Rendered as text, never as HTML.** Stored content is the student's own editor
+output. An admin console is the last place that should execute it — reading
+someone's work must never become a way to run script in an admin's session.
+
 ## What D1 will not do
 
 - **No metric the data cannot support.** "AI spend over time" needs a
