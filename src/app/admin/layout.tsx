@@ -8,6 +8,18 @@ import { requireAdmin } from "@/server/dal/session";
 export const metadata: Metadata = { title: "Operations" };
 
 /**
+ * The console's own sections.
+ *
+ * Kept here rather than in `nav.ts`: that table feeds the student sidebar and
+ * the command palette, and an admin route appearing in either is exactly the
+ * leak this console is unlinked to avoid.
+ */
+const ADMIN_NAV = [
+  { href: "/admin", label: "Health" },
+  { href: "/admin/users", label: "People" },
+] as const;
+
+/**
  * The admin console.
  *
  * Deliberately unlinked from the student interface. Admins reach it by typing
@@ -36,6 +48,18 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
         <span className="mono rounded-full border border-warning/40 bg-warning-subtle px-2 py-0.5 text-[0.625rem] font-medium tracking-[0.06em] text-warning uppercase">
           Admin
         </span>
+
+        <nav aria-label="Admin sections" className="ml-3 flex items-center gap-1">
+          {ADMIN_NAV.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="focus-glow rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
 
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden text-sm text-muted-foreground sm:inline">{admin.email}</span>

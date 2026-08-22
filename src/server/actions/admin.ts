@@ -45,7 +45,7 @@ export async function requeueGenerationJob(input: unknown): Promise<ActionResult
       // Not a hard block on the row, but requeueing something a worker is
       // actively writing would put two of them on the same sections.
       throw new AppError("CONFLICT", {
-        message: "That job is running. Wait for it to finish or fail before requeueing.",
+        userMessage: "That job is running. Wait for it to finish or fail before requeueing.",
       });
     }
 
@@ -124,6 +124,157 @@ export async function revealErrorDetail(
     });
 
     return ok({ detail: record.detail ?? "", stack: record.stack });
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/* ------------------------------------------------------------------
+   People
+   ------------------------------------------------------------------ */
+
+const targetSchema = z.object({ userId: z.string().min(1) });
+
+/**
+ * Loads the target and refuses the two ways an admin can lock everyone out.
+ *
+ * Self-action is refused because an admin removing their own access is almost
+ * always a misclick, and the recovery — editing the database by hand — is worse
+ * than the inconvenience of asking a colleague.
+ *
+ * Removing the last active admin is refused for the harder reason: there is no
+ * self-service route back. `ADMIN_BOOTSTRAP_EMAIL` only promotes on user
+ * CREATION, so an existing account cannot be re-promoted by restarting with the
+ * variable set. The product would need a database edit to administer again.
+ */
+async function loadTarget(adminId: string, userId: string, verb: string) {
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, role: true, planTier: true, suspendedAt: true },
+  });
+  if (!target) throw new AppError("NOT_FOUND");
+
+  if (target.id === adminId) {
+    throw new AppError("VALIDATION", {
+      userMessage: `You cannot ${verb} your own account. Ask another admin.`,
+    });
+  }
+
+  return target;
+}
+
+/** Whether removing this account's access would leave nobody able to administer. */
+async function assertNotLastAdmin(target: { role: string; suspendedAt: Date | null }, verb: string) {
+  if (target.role !== "ADMIN" || target.suspendedAt) return;
+
+  const remaining = await prisma.user.count({ where: { role: "ADMIN", suspendedAt: null } });
+  if (remaining <= 1) {
+    throw new AppError("VALIDATION", {
+      userMessage: `That is the only active admin. Promote someone else before you ${verb} them.`,
+    });
+  }
+}
+
+async function audit(adminId: string, action: string, target: { id: string; email: string }, metadata: Record<string, unknown> = {}) {
+  await prisma.auditLog.create({
+    data: {
+      userId: adminId,
+      action,
+      targetType: "user",
+      targetId: target.id,
+      // The email is recorded alongside the id so the trail stays readable
+      // after an account is deleted and the id no longer resolves.
+      metadata: { subjectEmail: target.email, ...metadata },
+    },
+  });
+}
+
+/**
+ * Suspends an account.
+ *
+ * Takes effect on the suspended user's very next request: `getCurrentUser`
+ * re-reads suspension from the database rather than trusting the session
+ * payload, so there is no window where an existing session still works.
+ */
+export async function setUserSuspended(input: unknown): Promise<ActionResult<null>> {
+  try {
+    const admin = await requireAdmin();
+    const { userId, suspended } = targetSchema.extend({ suspended: z.boolean() }).parse(input);
+
+    const target = await loadTarget(admin.id, userId, suspended ? "suspend" : "restore");
+    if (suspended) await assertNotLastAdmin(target, "suspend");
+
+    await prisma.user.update({
+      where: { id: target.id },
+      data: { suspendedAt: suspended ? new Date() : null },
+    });
+
+    await audit(admin.id, suspended ? "admin.user.suspend" : "admin.user.restore", target);
+
+    revalidatePath("/admin/users");
+    return ok(null);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Changes a role.
+ *
+ * Never self-service, and never inferred from anything a registration payload
+ * can set — `role` is `input: false` in the auth config, so this action and the
+ * bootstrap hook are the only two ways an account becomes an admin.
+ */
+export async function setUserRole(input: unknown): Promise<ActionResult<null>> {
+  try {
+    const admin = await requireAdmin();
+    const { userId, role } = targetSchema
+      .extend({ role: z.enum(["STUDENT", "ADMIN"]) })
+      .parse(input);
+
+    const target = await loadTarget(admin.id, userId, "change the role of");
+    if (role === "STUDENT") await assertNotLastAdmin(target, "demote");
+
+    if (target.role === role) return ok(null);
+
+    await prisma.user.update({ where: { id: target.id }, data: { role } });
+    await audit(admin.id, "admin.user.role", target, { from: target.role, to: role });
+
+    revalidatePath("/admin/users");
+    return ok(null);
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Changes a plan tier.
+ *
+ * This is the one admin action that gives something away, so it is recorded
+ * with both the old and new tier — "who made this account paid, and when" is
+ * the question that gets asked later, and an audit row saying only that a
+ * change happened would not answer it.
+ *
+ * It deliberately does not touch `Subscription`. That row reflects what a
+ * payment provider believes, and overwriting it here would make the two
+ * disagree silently. A comped account is a deliberate override of the tier,
+ * not a fabricated payment.
+ */
+export async function setUserPlan(input: unknown): Promise<ActionResult<null>> {
+  try {
+    const admin = await requireAdmin();
+    const { userId, planTier } = targetSchema
+      .extend({ planTier: z.enum(["FREE", "PAID"]) })
+      .parse(input);
+
+    const target = await loadTarget(admin.id, userId, "change the plan of");
+    if (target.planTier === planTier) return ok(null);
+
+    await prisma.user.update({ where: { id: target.id }, data: { planTier } });
+    await audit(admin.id, "admin.user.plan", target, { from: target.planTier, to: planTier });
+
+    revalidatePath("/admin/users");
+    return ok(null);
   } catch (error) {
     return fail(error);
   }

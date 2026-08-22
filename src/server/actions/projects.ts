@@ -76,7 +76,9 @@ export async function createProjectFromTopic(
       select: { key: true },
     });
     if (!known) {
-      throw new AppError("VALIDATION", { message: "Choose a project type from the list" });
+      throw new AppError("VALIDATION", {
+        userMessage: "Choose a project type from the list.",
+      });
     }
 
     const chapters = defaultStructureFor(projectType);
