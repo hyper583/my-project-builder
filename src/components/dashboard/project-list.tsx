@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Loader2,
   Search,
+  X,
   Zap,
 } from "lucide-react";
 
@@ -98,19 +99,24 @@ const QUICK_TYPES = [
 ] as const;
 
 /**
- * Starting a project, both ways.
+ * Starting a project.
  *
- * One field, because a working title and a topic are the same sentence at this
- * stage. The two buttons are the actual choice: set the project up properly, or
- * skip straight to a structured draft.
+ * Closed, this is a single button. The dashboard's job is to show the work that
+ * already exists, and a permanently-open form with an empty field, a dropdown
+ * and two buttons made starting a project look like the main event on a page
+ * about everything else.
  *
- * The fast path is not a lesser product — the wizard has always been optional —
- * but it does produce a thinner project, and the note below says so rather than
- * letting the student discover it in the output. What it cannot know it marks,
- * and completing setup later closes the gap.
+ * Opened, it asks the two things that actually shape the document — the topic
+ * and the type — and then offers the real choice: set the project up properly,
+ * or skip straight to a structured draft.
+ *
+ * The fast path is not a lesser product; the wizard has always been optional.
+ * It does produce a thinner project though, and the note says so rather than
+ * letting the student discover it in the output.
  */
 function NewProjectForm() {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [topic, setTopic] = useState("");
   const [projectType, setProjectType] = useState<string>(QUICK_TYPES[0].value);
   const [error, setError] = useState<string | null>(null);
@@ -143,31 +149,68 @@ function NewProjectForm() {
     });
   }
 
+  if (!open) {
+    return (
+      // No `aria-controls` while collapsed: the form it would name is not in
+      // the DOM yet, and a reference to a missing id is worse than none.
+      <Button type="button" onClick={() => setOpen(true)} aria-expanded={false}>
+        <FilePlus2 className="size-4" aria-hidden="true" />
+        Create New Project
+      </Button>
+    );
+  }
+
   return (
     <form
-      className="space-y-3"
+      id="new-project-form"
+      className="rise-in space-y-4 rounded-xl border border-border bg-card p-5 elevated-1"
       onSubmit={(event) => {
         event.preventDefault();
         run("setup");
       }}
     >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-[0.9375rem] font-semibold tracking-[-0.014em]">
+            Start a new project
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            What are you writing about? You can change any of this later.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Cancel"
+          className="focus-glow flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex-1">
-          <label htmlFor="new-project-title" className="sr-only">
-            Your project topic
+          <label
+            htmlFor="new-project-title"
+            className="mb-1.5 block text-sm font-medium"
+          >
+            Project topic
           </label>
           <input
             id="new-project-title"
+            autoFocus
             value={topic}
             onChange={(event) => setTopic(event.target.value)}
-            placeholder="e.g. Effect of study habits on academic performance"
             className="h-11 w-full field px-3 text-base"
           />
         </div>
 
         <div className="sm:w-52">
-          <label htmlFor="new-project-type" className="sr-only">
-            Project type
+          <label
+            htmlFor="new-project-type"
+            className="mb-1.5 block text-sm font-medium"
+          >
+            Type
           </label>
           <select
             id="new-project-type"
@@ -182,18 +225,15 @@ function NewProjectForm() {
             ))}
           </select>
         </div>
+      </div>
 
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" disabled={pending || topic.trim().length === 0}>
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <FilePlus2 className="size-4" aria-hidden="true" />
-          )}
+          ) : null}
           Set up my project
         </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button
           type="button"
           variant="outline"
@@ -205,20 +245,18 @@ function NewProjectForm() {
               : "Creates the project with a standard structure, ready to generate"
           }
         >
-          {pending ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Zap className="size-4" aria-hidden="true" />
-          )}
+          <Zap className="size-4" aria-hidden="true" />
           Skip setup
         </Button>
-        <p className="max-w-xl text-xs leading-relaxed text-subtle-foreground">
-          Builds the project from your topic with a standard chapter structure,
-          ready to generate. Anything it cannot know — your methodology, sample,
-          institution — is marked for you rather than invented, so expect more
-          to fill in afterwards.
-        </p>
       </div>
+
+      <p className="text-xs leading-relaxed text-subtle-foreground">
+        <span className="font-medium text-muted-foreground">Skip setup</span>{" "}
+        builds the project from your topic with a standard chapter structure,
+        ready to generate. Anything it cannot know — your methodology, sample,
+        institution — is marked for you rather than invented, so expect more to
+        fill in afterwards.
+      </p>
 
       {error ? (
         <p role="alert" className="text-sm text-destructive">

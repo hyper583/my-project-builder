@@ -40,6 +40,17 @@ const SEGMENT_LABELS: Record<string, string> = {
   settings: "Settings",
 };
 
+/**
+ * Where a segment actually goes, when that is not its own path.
+ *
+ * "/projects" has no page — projects live at "/projects/[id]" and the list of
+ * them is the dashboard. Linking the crumb to its literal path sent people to
+ * a 404 from inside every project.
+ */
+const SEGMENT_HREFS: Record<string, string> = {
+  projects: "/dashboard",
+};
+
 function buildCrumbs(pathname: string): Array<{ label: string; href: string | null }> {
   const segments = pathname.split("/").filter(Boolean);
   const crumbs: Array<{ label: string; href: string | null }> = [];
@@ -55,7 +66,7 @@ function buildCrumbs(pathname: string): Array<{ label: string; href: string | nu
       return;
     }
 
-    const href = `/${segments.slice(0, index + 1).join("/")}`;
+    const href = SEGMENT_HREFS[segment] ?? `/${segments.slice(0, index + 1).join("/")}`;
     const last = index === segments.length - 1;
     crumbs.push({ label: known, href: last ? null : href });
   });
@@ -269,7 +280,12 @@ function Sidebar({
   return (
     <aside
       aria-label="Primary"
-      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:transition-[width] ${width} ${
+      // Sticky rather than static on desktop, so the nav stays put instead of
+      // scrolling off the top of a long page and leaving nowhere to navigate
+      // from. `h-dvh` with `self-start` is load-bearing: a flex child stretches
+      // to the row's height by default, and a sticky element taller than the
+      // viewport pins to its BOTTOM edge — it would still scroll away.
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform duration-200 lg:sticky lg:top-0 lg:bottom-auto lg:z-auto lg:h-dvh lg:translate-x-0 lg:self-start lg:transition-[width] ${width} ${
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}
     >
