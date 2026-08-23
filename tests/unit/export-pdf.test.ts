@@ -164,4 +164,39 @@ describe("renderPdf", () => {
     );
     expect(result.bytes.byteLength).toBeGreaterThan(0);
   });
+
+  /**
+   * A real chapter runs to twenty pages or more; every other test here renders
+   * a single short section, which is precisely why this shipped broken.
+   *
+   * The page furniture is `fixed`, so react-pdf re-resolves its style on every
+   * rendered page and mutates the shared style object in place. An inherited
+   * `lineHeight` therefore compounded by the font size once per page, and
+   * overflowed into an unrepresentable number once a single chapter spilled
+   * past roughly a dozen pages. A literature review always does, so every real
+   * export failed while the short sample project passed.
+   */
+  it("renders a chapter long enough to span many pages", async () => {
+    const paragraph =
+      "<p>" +
+      "Financial inclusion has emerged as a central concern of development economics. ".repeat(12) +
+      "</p>";
+
+    const chapters = Array.from({ length: 5 }, (_, chapter) => ({
+      number: String(chapter + 1),
+      title: `Chapter ${chapter + 1}`,
+      blocks: [],
+      sections: Array.from({ length: 5 }, (_, section) => ({
+        number: `${chapter + 1}.${section + 1}`,
+        title: `Section ${chapter + 1}.${section + 1}`,
+        blocks: parseSectionHtml(paragraph.repeat(6)),
+      })),
+    }));
+
+    const result = await renderPdf(baseDocument({ chapters }));
+    expect(result.bytes.byteLength).toBeGreaterThan(10_000);
+
+    const text = await pdfText(result.bytes);
+    expect(text).toContain("Section 5.5");
+  });
 });
