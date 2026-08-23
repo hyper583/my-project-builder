@@ -90,6 +90,7 @@ async function generateSubsection(params: {
     system: params.fabricate ? SYSTEM_PROMPTS.generateDemo : SYSTEM_PROMPTS.generate,
     context: memory.context,
     sources: memory.sources,
+    references: memory.references,
     instruction: [
       `Write the section "${[params.section.number, params.section.title].filter(Boolean).join(" ")}".`,
       `It belongs to the chapter "${params.chapterTitle}".`,
@@ -150,6 +151,7 @@ async function scaffoldResultsChapter(params: {
       system: params.fabricate ? SYSTEM_PROMPTS.generateDemo : SYSTEM_PROMPTS.generate,
       context: memory.context,
       sources: memory.sources,
+      references: memory.references,
       instruction: [
         `Prepare the section "${[section.number, section.title].filter(Boolean).join(" ")}".`,
         `It belongs to "${params.chapter.title}", which reports findings.`,

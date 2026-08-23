@@ -133,13 +133,17 @@ describe("enqueueing", () => {
       select: { key: true },
     });
 
-    // analyse + outline, two chapters, then references + consistency + finalise.
+    // Retrieval sits in the prologue, ahead of the writing. It used to run
+    // after the last chapter, which meant every chapter was written before a
+    // single source existed and the citations in the prose referred to
+    // nothing. Consistency stays at the end, where there is something to
+    // check.
     expect(steps.map((s) => s.key.split(":")[0])).toEqual([
       "analyse",
+      "references",
       "outline",
       "chapter",
       "chapter",
-      "references",
       "consistency",
       "finalise",
     ]);

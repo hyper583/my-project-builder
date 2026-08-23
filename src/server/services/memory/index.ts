@@ -1,5 +1,7 @@
 import { prisma } from "@/server/db";
-import type { UntrustedSource } from "@/server/services/ai/types";
+import type { CitableReference, UntrustedSource } from "@/server/services/ai/types";
+import { formatReference } from "@/server/services/export/assemble";
+import { inTextCitation } from "@/server/services/references/cite";
 
 /**
  * Project memory.
@@ -19,6 +21,39 @@ export interface ProjectMemory {
   readonly context: string;
   /** Untrusted extracted document text, fenced by the prompt layer. */
   readonly sources: UntrustedSource[];
+  /**
+   * Verified published works this project may cite.
+   *
+   * Empty until the retrieval stage has run, which is why that stage moved
+   * ahead of the writing: for as long as it ran last, every chapter was
+   * written with nothing to cite and the citations in the prose referred to
+   * no record at all.
+   */
+  readonly references: CitableReference[];
+}
+
+/**
+ * The works the model is allowed to cite.
+ *
+ * VERIFIED only. Those came from a bibliographic database and their DOIs
+ * resolve; entries a student typed or pasted are unverified by definition, and
+ * feeding them back as citable would launder a guess into an authority.
+ */
+async function citableReferences(projectId: string, limit: number): Promise<CitableReference[]> {
+  const rows = await prisma.projectReference.findMany({
+    where: { projectId, verification: "VERIFIED" },
+    orderBy: [{ year: "desc" }, { title: "asc" }],
+    take: limit,
+  });
+
+  return rows.flatMap((row) => {
+    const inText = inTextCitation({ authors: row.authors, year: row.year });
+    const full = formatReference(row);
+    // A work with no usable author or year has no citation form, so offering
+    // it invites the model to invent one.
+    if (!inText || !full) return [];
+    return [{ inText, full }];
+  });
 }
 
 function line(label: string, value: string | null | undefined): string | null {
@@ -40,7 +75,7 @@ function list(label: string, values: readonly string[]): string | null {
  */
 export async function buildProjectMemory(
   projectId: string,
-  options: { query?: string; maxSources?: number } = {},
+  options: { query?: string; maxSources?: number; maxReferences?: number } = {},
 ): Promise<ProjectMemory> {
   const project = await prisma.project.findUniqueOrThrow({
     where: { id: projectId },
@@ -120,8 +155,12 @@ export async function buildProjectMemory(
   }
 
   const sources = await retrieveSources(projectId, options.query, options.maxSources ?? 6);
+  // Capped: the list rides in the cached prefix on every section call, so it is
+  // paid for once and read back cheaply, but an unbounded bibliography would
+  // still crowd out the project facts it sits beside.
+  const references = await citableReferences(projectId, options.maxReferences ?? 30);
 
-  return { context: facts.join("\n\n"), sources };
+  return { context: facts.join("\n\n"), sources, references };
 }
 
 /**

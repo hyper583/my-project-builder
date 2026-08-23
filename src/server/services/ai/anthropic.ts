@@ -5,7 +5,7 @@ import type { z } from "zod";
 import { env } from "@/lib/env";
 import { AppError } from "@/server/errors";
 import { normaliseHistory } from "@/server/services/ai/history";
-import { buildUserMessage, renderSources } from "@/server/services/ai/prompts";
+import { buildUserMessage, renderReferences, renderSources } from "@/server/services/ai/prompts";
 import type {
   AIProvider,
   GenerateOptions,
@@ -49,6 +49,13 @@ export class AnthropicProvider implements AIProvider {
     const stable: string[] = [];
     if (options.context.trim()) {
       stable.push(`<project_context>\n${options.context.trim()}\n</project_context>`);
+    }
+    // Before the uploads, and inside the cached prefix: the reference list is
+    // identical for every section of a project, so it is written to cache once
+    // and read back at a tenth of the price on each of the twenty-odd calls
+    // that follow.
+    if (options.references && options.references.length > 0) {
+      stable.push(renderReferences(options.references));
     }
     if (options.sources && options.sources.length > 0) {
       stable.push(renderSources(options.sources));

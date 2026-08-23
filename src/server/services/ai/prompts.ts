@@ -1,4 +1,4 @@
-import type { UntrustedSource } from "@/server/services/ai/types";
+import type { CitableReference, UntrustedSource } from "@/server/services/ai/types";
 
 /**
  * Prompt assembly.
@@ -39,6 +39,39 @@ author, year, journal or page range.
 Preserve the student's approved topic wording exactly. Do not silently change
 research facts they have already stated — sample size, population, location,
 design, objectives or hypotheses.
+`.trim();
+
+/**
+ * What may be cited, and what to do when nothing supports a claim.
+ *
+ * A citation points at the real world, so an invented one is the same class of
+ * harm as an invented statistic: a reader can look it up, and a supervisor
+ * will. The retrieval stage now runs before any prose is written precisely so
+ * this list exists while the model writes — previously sources were gathered
+ * afterwards, and the citations in the text referred to nothing.
+ *
+ * The uncited fallback is deliberate. Given the choice between a sentence with
+ * no citation and a sentence with a plausible fabricated one, the honest
+ * failure is the empty one — it is visible to the student, who can then go and
+ * find the source, whereas a fabricated citation looks finished and is not.
+ */
+const CITATION_RULES = `
+A <citable_references> block may accompany the project context. It lists real
+published works retrieved for this project and checked against a bibliographic
+database.
+
+Cite ONLY works listed in that block, using the "Cite as" form given for each
+and the citation style stated in the project context. Never invent a citation,
+an author, a year, or a title, and never cite a work that is not listed —
+including ones you may recall independently.
+
+Where a claim needs support and nothing in the list supports it, write the
+claim WITHOUT a citation. Do not attach the nearest listed work to a claim it
+does not actually support, and do not soften the claim into vagueness to avoid
+the problem. An uncited sentence is honest and the student can source it; a
+fabricated citation is not, and looks finished.
+
+If the block is absent or empty, write without citations.
 `.trim();
 
 const SOURCE_HANDLING_RULES = `
@@ -94,6 +127,8 @@ export const SYSTEM_PROMPTS = {
 
 ${SOURCE_HANDLING_RULES}
 
+${CITATION_RULES}
+
 You are drafting a section of a sample project. Write in formal academic prose
 appropriate to the discipline and level. Follow the stated formatting and
 citation conventions. Do not add headings the section structure does not
@@ -102,6 +137,8 @@ already call for.`,
   generate: `${INTEGRITY_RULES}
 
 ${SOURCE_HANDLING_RULES}
+
+${CITATION_RULES}
 
 You are drafting a section of the student's project. Write in formal academic
 prose appropriate to their discipline and level. Follow the project's stated
@@ -163,6 +200,35 @@ export function renderSources(sources: readonly UntrustedSource[]): string {
 }
 
 /**
+ * Lists the works the model is allowed to cite.
+ *
+ * Deliberately not an `<untrusted_source>` block. These are retrieved
+ * bibliographic records, and the whole point is that the model should rely on
+ * them — telling it in the same breath to distrust them would be incoherent.
+ * The delimiter is still stripped, because a title is text like any other and
+ * arrives from an external API.
+ */
+export function renderReferences(references: readonly CitableReference[]): string {
+  if (references.length === 0) return "";
+
+  const strip = (text: string) =>
+    text.replace(/<\/?citable_references[^>]*>/gi, "").slice(0, 600);
+
+  const entries = references
+    .map((reference, index) => `${index + 1}. ${strip(reference.full)}\n   Cite as: ${strip(reference.inText)}`)
+    .join("\n");
+
+  return [
+    "<citable_references>",
+    "These are real published works, retrieved for this project and verified",
+    "against a bibliographic database. They are the ONLY works you may cite.",
+    "",
+    entries,
+    "</citable_references>",
+  ].join("\n");
+}
+
+/**
  * Builds the user-role message.
  *
  * Order matters for prompt caching: stable project context first, then the
@@ -172,12 +238,16 @@ export function buildUserMessage(params: {
   context: string;
   instruction: string;
   sources?: readonly UntrustedSource[];
+  references?: readonly CitableReference[];
   selection?: string;
 }): string {
   const parts: string[] = [];
 
   if (params.context.trim()) {
     parts.push(`<project_context>\n${params.context.trim()}\n</project_context>`);
+  }
+  if (params.references && params.references.length > 0) {
+    parts.push(renderReferences(params.references));
   }
   if (params.sources && params.sources.length > 0) {
     parts.push(renderSources(params.sources));
