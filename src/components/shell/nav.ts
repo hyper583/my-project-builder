@@ -1,8 +1,12 @@
 import {
+  Download,
+  History,
   LayoutDashboard,
   ListChecks,
+  Library,
   Settings,
   SquarePen,
+  Stethoscope,
   Telescope,
   type LucideIcon,
 } from "lucide-react";
@@ -39,10 +43,23 @@ export const GLOBAL_NAV: readonly NavItem[] = [
  */
 export function projectNav(projectId: string): readonly NavItem[] {
   const base = `/projects/${projectId}`;
+  /*
+   * Ordered the way the work happens: describe it, review it, write it, then
+   * everything you do to the result.
+   *
+   * Sources, health, history and export were all panels stacked on the
+   * blueprint, which made that page a nine-thousand-pixel scroll and buried the
+   * one thing it is actually for. Each answers a different question, so each is
+   * a page — and listing them here is what makes them findable at all.
+   */
   return [
     { href: `${base}/wizard/1`, label: "Setup", icon: ListChecks, match: `${base}/wizard` },
     { href: `${base}/blueprint`, label: "Blueprint", icon: Telescope },
     { href: `${base}/workspace`, label: "Workspace", icon: SquarePen },
+    { href: `${base}/sources`, label: "Sources", icon: Library },
+    { href: `${base}/health`, label: "Health", icon: Stethoscope },
+    { href: `${base}/history`, label: "History", icon: History },
+    { href: `${base}/export`, label: "Export", icon: Download },
   ];
 }
 

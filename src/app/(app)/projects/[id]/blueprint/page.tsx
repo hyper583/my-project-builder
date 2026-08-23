@@ -5,19 +5,11 @@ import { PencilLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DemoBanner } from "@/components/demo/demo-banner";
-import { ExportPanel } from "@/components/export/export-panel";
 import { GenerationSettings } from "@/components/generation/generation-settings";
-import { ProjectHealthPanel } from "@/components/health/project-health";
-import { ReferenceManager } from "@/components/references/reference-manager";
-import { VersionHistory } from "@/components/versions/version-history";
 import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
-import { listIssues } from "@/server/services/consistency";
-import { computeHealth } from "@/server/services/health";
-import { listReferences } from "@/server/services/references";
 import { parseFormatting } from "@/server/services/export/assemble";
 import { wordsPerPage } from "@/server/services/generation/budget";
-import { listVersions } from "@/server/services/versions";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { aiConfigured } from "@/server/services/ai";
 import { requireProject } from "@/server/dal/projects";
@@ -118,40 +110,6 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
   });
   const perPage = wordsPerPage(parseFormatting(f));
 
-  const [health, openIssues, dismissedIssues, references] = await Promise.all([
-    computeHealth(id),
-    listIssues(id, "OPEN"),
-    listIssues(id, "DISMISSED"),
-    listReferences(id),
-  ]);
-
-  const versions = (await listVersions(id)).map((version) => ({
-    id: version.id,
-    number: version.number,
-    label: version.label,
-    createdAt: new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(version.createdAt),
-    sectionCount: version.sectionCount,
-    wordCount: version.wordCount,
-  }));
-
-  // Counted here so the export panel can say what is still outstanding before
-  // a student downloads a document with gaps in it.
-  const placeholderCount = await prisma.sectionPlaceholder.count({
-    where: { resolved: false, section: { projectId: id } },
-  });
-
-  // Phrased for the student, and derived from the same resolver the pipeline
-  // uses, so the reason shown here is the reason an export would actually give.
-  const denialReason = exportPolicy.allowed
-    ? null
-    : exportPolicy.reason === "DEMO_REQUIRES_PAID_PLAN"
-      ? "Exporting a sample project is part of the paid plan. Upgrade to download it, or create your own project and export that."
-      : exportPolicy.reason === "NOT_OWNER"
-        ? "This project belongs to someone else."
-        : "Exporting is not included in your current plan.";
 
   const methodologyForm = METHODOLOGY_FORMS[methodologyKeyFor(p.projectType)];
   const methodologyData = (p.methodology?.data ?? {}) as Record<string, string | string[]>;
@@ -288,35 +246,6 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
         </section>
       </div>
 
-      {p.kind === "DEMO" ? null : (
-        <div className="mt-8">
-          <GenerationPanel
-            projectId={id}
-            aiConfigured={aiConfigured}
-            initiallyRunning={activeJob !== null}
-          />
-        </div>
-      )}
-
-      <div className="mt-8">
-        <ProjectHealthPanel
-          projectId={id}
-          score={health.score}
-          band={health.band}
-          components={health.components}
-          issues={openIssues.map((issue) => ({
-            id: issue.id,
-            kind: issue.kind,
-            severity: issue.severity,
-            status: issue.status,
-            summary: issue.summary,
-            detail: issue.detail,
-            source: issue.source,
-          }))}
-          dismissedCount={dismissedIssues.length}
-        />
-      </div>
-
       <div className="mt-8">
         <GenerationSettings
           projectId={id}
@@ -327,40 +256,15 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
         />
       </div>
 
-      <div className="mt-8">
-        <ReferenceManager
-          projectId={id}
-          references={references.map((reference) => ({
-            id: reference.id,
-            authors: reference.authors,
-            year: reference.year,
-            title: reference.title,
-            publication: reference.publication,
-            volume: reference.volume,
-            issue: reference.issue,
-            pages: reference.pages,
-            doi: reference.doi,
-            url: reference.url,
-            raw: reference.raw,
-            verification: reference.verification,
-            citationCount: reference.citationCount,
-          }))}
-        />
-      </div>
-
-      <div className="mt-8">
-        <VersionHistory projectId={id} versions={versions} />
-      </div>
-
-      <div className="mt-8">
-        <ExportPanel
-          projectId={id}
-          allowed={exportPolicy.allowed}
-          denialReason={denialReason}
-          willCarryDisclaimer={exportPolicy.allowed && exportPolicy.disclaimer}
-          placeholderCount={placeholderCount}
-        />
-      </div>
+      {p.kind === "DEMO" ? null : (
+        <div className="mt-8">
+          <GenerationPanel
+            projectId={id}
+            aiConfigured={aiConfigured}
+            initiallyRunning={activeJob !== null}
+          />
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-border pt-6">
         <Button asChild variant="outline">

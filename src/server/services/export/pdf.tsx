@@ -67,9 +67,16 @@ function buildStyles(formatting: ExportFormatting) {
       paddingRight: formatting.marginInches.right * 72,
       paddingBottom: formatting.marginInches.bottom * 72 + 24,
       paddingLeft: formatting.marginInches.left * 72,
-      lineHeight: leading,
+      // Line spacing deliberately does NOT live here, and must not be moved
+      // back. The page furniture below is `fixed`, so react-pdf re-resolves
+      // its style on every rendered page and mutates the shared style object
+      // in place — an inherited `lineHeight` is multiplied by the font size
+      // again on each pass. Once a chapter spilled past roughly a dozen pages
+      // the value overflowed and the render died with "unsupported number",
+      // which broke every real project while the short sample still passed.
+      // Each prose style carries the spacing itself instead.
     },
-    paragraph: { marginBottom: 8, textAlign: "justify" },
+    paragraph: { marginBottom: 8, textAlign: "justify", lineHeight: leading },
     heading1: {
       fontFamily: boldOf(font),
       fontSize: size + 2,
@@ -79,7 +86,7 @@ function buildStyles(formatting: ExportFormatting) {
     },
     heading2: { fontFamily: boldOf(font), fontSize: size + 1, marginTop: 12, marginBottom: 6 },
     heading3: { fontFamily: boldOf(font), fontSize: size, marginTop: 10, marginBottom: 5 },
-    listItem: { marginBottom: 4, paddingLeft: 16 },
+    listItem: { marginBottom: 4, paddingLeft: 16, lineHeight: leading },
     table: { marginTop: 6, marginBottom: 10, borderTop: "1pt solid #444", borderLeft: "1pt solid #444" },
     row: { flexDirection: "row" },
     cell: {
@@ -101,9 +108,9 @@ function buildStyles(formatting: ExportFormatting) {
       lineHeight: 1.3,
     },
     figure: { textAlign: "center", fontFamily: italicOf(font), marginTop: 6, marginBottom: 6 },
-    reference: { marginBottom: 8, paddingLeft: 28, textIndent: -28 },
+    reference: { marginBottom: 8, paddingLeft: 28, textIndent: -28, lineHeight: leading },
     // Title page
-    titleCentre: { textAlign: "center", marginBottom: 8 },
+    titleCentre: { textAlign: "center", marginBottom: 8, lineHeight: leading },
     titleMain: { fontFamily: boldOf(font), fontSize: size + 6, textAlign: "center", marginTop: 40, marginBottom: 10 },
     // Fixed page furniture
     /*

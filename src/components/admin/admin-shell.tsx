@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import { MarkTile } from "@/components/shell/wordmark";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 /**
  * The console's own sections.
@@ -57,7 +56,13 @@ export function AdminShell({
       >
         <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-border px-4">
           <MarkTile />
-          <span className="text-[0.9375rem] font-semibold tracking-[-0.02em]">Operations</span>
+          <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold tracking-[-0.02em]">
+            Operations
+          </span>
+          {/* Says where you are, in the one place that is always on screen. */}
+          <span className="mono shrink-0 rounded-full border border-warning/40 bg-warning-subtle px-1.5 py-0.5 text-[0.5625rem] font-medium tracking-[0.06em] text-warning uppercase">
+            Admin
+          </span>
         </div>
 
         <nav className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -142,19 +147,7 @@ export function AdminShell({
               })}
             </ul>
           </nav>
-          <ThemeToggle />
         </header>
-
-        {/* The theme toggle lives here on desktop, where the sidebar has no
-            room for it without competing with navigation. */}
-        <div className="hidden justify-end border-b border-border px-6 py-2.5 lg:flex">
-          <span className="mono flex items-center gap-3 rounded-full border border-warning/40 bg-warning-subtle px-2.5 py-0.5 text-[0.625rem] font-medium tracking-[0.06em] text-warning uppercase">
-            Admin console
-          </span>
-          <span className="ml-3">
-            <ThemeToggle />
-          </span>
-        </div>
 
         <main id="main" className="flex min-h-0 flex-1 flex-col">
           {children}
