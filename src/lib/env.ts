@@ -12,6 +12,13 @@ const serverEnvSchema = z.object({
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DIRECT_URL: z.string().min(1, "DIRECT_URL is required"),
+  /**
+   * Connection pool ceiling. Left unset in normal use, where the pg default
+   * applies. It exists for `prisma dev`, whose PGLite engine is compiled to
+   * wasm32 and cannot serve concurrent connections: a burst of 20 queries
+   * against it completes 5 with the default pool and 20 with a pool of 1.
+   */
+  DATABASE_POOL_MAX: z.coerce.number().int().positive().optional(),
 
   BETTER_AUTH_SECRET: z.string().min(16, "BETTER_AUTH_SECRET must be at least 16 characters"),
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),

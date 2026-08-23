@@ -75,6 +75,11 @@ export function AccountMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        // The visible name is hidden below `sm`, and the initials and chevron
+        // are decorative — without this the button has no accessible name at
+        // all on a phone. Including the name keeps the accessible name a
+        // superset of the visible one (WCAG "Label in Name").
+        aria-label={`Account menu — ${name ?? email}`}
         className="flex h-9 cursor-pointer items-center gap-2 rounded-md pr-1.5 pl-1 transition-colors duration-150 hover:bg-muted"
       >
         <span

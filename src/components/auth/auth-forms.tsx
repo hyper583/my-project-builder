@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { signIn, signUp } from "@/lib/auth-client";
+import { MIN_PASSWORD_LENGTH, signIn, signUp } from "@/lib/auth-client";
 
 function Field({
   id,
@@ -78,8 +78,8 @@ export function RegisterForm() {
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
 
-    if (password.length < 10) {
-      setError("Please choose a password of at least 10 characters.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Please choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
 
@@ -105,7 +105,7 @@ export function RegisterForm() {
         label="Password"
         type="password"
         autoComplete="new-password"
-        hint="At least 10 characters."
+        hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
       />
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
