@@ -24,6 +24,15 @@ const serverEnvSchema = z.object({
   BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
   ADMIN_BOOTSTRAP_EMAIL: z.string().email().optional().or(z.literal("")),
 
+  /**
+   * Google sign-in. Optional, and both halves are required together — a client
+   * id with no secret configures a provider that fails at the redirect, which
+   * is worse than not offering it, so `isGoogleAuthConfigured` demands both and
+   * the button is not rendered otherwise.
+   */
+  GOOGLE_CLIENT_ID: z.string().optional().or(z.literal("")),
+  GOOGLE_CLIENT_SECRET: z.string().optional().or(z.literal("")),
+
   AI_PROVIDER: z.enum(["mock", "anthropic"]).default("mock"),
   ANTHROPIC_API_KEY: z.string().optional().or(z.literal("")),
   AI_MODEL_GENERATION: z.string().default("claude-opus-5"),
@@ -60,3 +69,13 @@ export const env: ServerEnv = loadEnv();
  */
 export const isAiConfigured: boolean =
   env.AI_PROVIDER === "anthropic" && Boolean(env.ANTHROPIC_API_KEY);
+
+/**
+ * Whether Google sign-in can actually complete.
+ *
+ * Both halves or neither. The sign-in page reads this and omits the button
+ * when it is false, because a visible "Continue with Google" that dead-ends at
+ * Google's error page is a worse experience than an email field on its own.
+ */
+export const isGoogleAuthConfigured: boolean =
+  Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET);

@@ -165,8 +165,18 @@ async function fromCrossref(options: RetrieveOptions): Promise<RetrievedSource[]
 
     return {
       title: String((item.title as string[])?.[0] ?? "").trim(),
+      /*
+       * "Given Family", matching what OpenAlex returns.
+       *
+       * Crossref supplies the parts separately, and joining them as
+       * "Family, Given" made a multi-author list unreadable once the entries
+       * were themselves joined with commas for the bibliography: four authors
+       * rendered as "Saidyjeng, Lamin, Gitteh, Alasana" — eight names, or
+       * four, with nothing to say which. The two databases must agree on a
+       * format before anything downstream can parse one.
+       */
       authors: authors
-        .map((a) => [a.family, a.given].filter(Boolean).join(", "))
+        .map((a) => [a.given, a.family].filter(Boolean).join(" ").trim())
         .filter(Boolean),
       year: year ? String(year) : null,
       publication: String((item["container-title"] as string[])?.[0] ?? "").trim() || null,

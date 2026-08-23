@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CornerDownLeft, Search } from "lucide-react";
+import { CornerDownLeft } from "lucide-react";
 
 import { rankCommands, type Command } from "@/components/shell/commands";
 import { useDismissable } from "@/lib/use-dismissable";
@@ -111,8 +111,13 @@ export function CommandPalette({
         aria-label="Command palette"
         className="rise-in relative flex max-h-[60vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-border bg-surface elevated-4"
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-border px-4">
-          <Search className="size-4 shrink-0 text-subtle-foreground" aria-hidden="true" />
+        {/*
+         * No magnifier here. It was decorative — `aria-hidden`, no handler —
+         * but it sits at the head of a text field, which is where a control
+         * belongs, so it read as a button that did nothing when clicked. The
+         * placeholder already says what the field is for.
+         */}
+        <div className="flex shrink-0 items-center border-b border-border px-4">
           <input
             data-autofocus
             value={query}

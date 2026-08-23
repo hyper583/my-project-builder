@@ -116,11 +116,31 @@ export function AccountMenu({
             </div>
           </div>
 
+          {/*
+           * The way into the admin console.
+           *
+           * The badge above says an account is an admin; it is a label, not a
+           * way to go anywhere. Without this link the console was reachable
+           * only by typing `/admin` into the address bar, which is not a
+           * feature — an admin who cannot find the console does not have one.
+           */}
+          {role === "ADMIN" ? (
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 hover:bg-muted"
+            >
+              <ShieldCheck className="size-4 text-muted-foreground" aria-hidden="true" />
+              Admin console
+            </Link>
+          ) : null}
+
           <Link
             href="/settings"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="mt-1 flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 hover:bg-muted"
+            className={`${role === "ADMIN" ? "" : "mt-1 "}flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150 hover:bg-muted`}
           >
             <Settings className="size-4 text-muted-foreground" aria-hidden="true" />
             Settings

@@ -28,9 +28,37 @@ export interface Stage {
  * brief forbids. Matching on the title is a heuristic, so the scaffold stage
  * also states plainly what it did and why.
  */
-const RESULTS_CHAPTER = /\b(result|finding|data\s+(presentation|analysis)|analysis and interpretation|presentation of data)\b/i;
+const RESULTS_CHAPTER =
+  /\b(results?|findings?|data\s+(presentation|analysis)|analysis\s+and\s+interpretation|presentation\s+(of|and)\s+(data|analysis|results?))\b/i;
 
+/**
+ * Chapter five, which discusses findings rather than reporting them.
+ *
+ * Checked first because it almost always contains the word "Findings" —
+ * "Summary of Findings and Conclusion" is a common title — and scaffolding it
+ * would answer a conclusion with "what this section will present once you add
+ * your data", which is not what a conclusion is.
+ */
+const CONCLUDING_CHAPTER = /\b(summary|conclusion|recommendation)/i;
+
+/**
+ * Whether a chapter reports findings, and so must be scaffolded rather than
+ * written.
+ *
+ * The previous pattern required singular words behind word boundaries —
+ * `\bresult\b` cannot match "Results", because the boundary needs a non-word
+ * character and `s` is not one. The effect was that **the default template's
+ * own Chapter 4, "Results and Discussion", was never detected**, and neither
+ * were "Presentation of Results", "Analysis of Findings" or "Findings and
+ * Discussion". Only the singular "Result and Discussion" matched, which
+ * essentially nobody writes, so the protection was inert for real projects.
+ *
+ * Nothing visibly failed, because the integrity rules in the system prompt
+ * caught the fabrication anyway and emitted placeholders. That is the safety
+ * net doing the job the design was supposed to do first.
+ */
 export function isResultsChapter(title: string): boolean {
+  if (CONCLUDING_CHAPTER.test(title)) return false;
   return RESULTS_CHAPTER.test(title);
 }
 
@@ -41,13 +69,23 @@ export interface ChapterInput {
 }
 
 /** Fixed stages that always run, regardless of structure. */
+/**
+ * Source retrieval runs BEFORE any prose is written, and must stay there.
+ *
+ * It used to be the first epilogue stage, which meant every chapter was
+ * written before a single source existed. The reading list that came back was
+ * accurate and completely disconnected from the document it was attached to:
+ * whatever citations appeared in the prose referred to nothing, because there
+ * had been nothing to refer to. Moving it ahead of the writing is what lets
+ * the model cite real, retrieved works instead.
+ */
 export const PROLOGUE_STAGES: readonly Stage[] = [
   { key: "analyse", label: "Analysing your project information", kind: "analyse" },
+  { key: "references", label: "Finding published sources for your topic", kind: "references" },
   { key: "outline", label: "Confirming the project structure", kind: "outline" },
 ] as const;
 
 export const EPILOGUE_STAGES: readonly Stage[] = [
-  { key: "references", label: "Assembling references from your sources", kind: "references" },
   { key: "consistency", label: "Checking the project for contradictions", kind: "consistency" },
   { key: "finalise", label: "Preparing your project workspace", kind: "finalise" },
 ] as const;
