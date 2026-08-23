@@ -49,11 +49,22 @@ describe("resolveExportPolicy — demo matrix", () => {
   });
 
   it("never requires a disclaimer on a real project", () => {
-    for (const actor of [freeStudent, paidStudent, admin]) {
+    // A real project is the student's own work; nothing is stamped on it.
+    for (const actor of [paidStudent, admin]) {
       const policy = resolveExportPolicy(actor, realProject);
       expect(policy.allowed).toBe(true);
       if (policy.allowed) expect(policy.disclaimer).toBe(false);
     }
+  });
+
+  it("blocks a free student from downloading their own real project", () => {
+    // The paywall. A free student generates the project and reads every word
+    // of it in the workspace; taking it away is what is paid for. This was
+    // previously allowed, which gave the deliverable away and charged for the
+    // sample instead.
+    const policy = resolveExportPolicy(freeStudent, realProject);
+    expect(policy.allowed).toBe(false);
+    if (!policy.allowed) expect(policy.reason).toBe("REAL_EXPORT_NOT_IN_PLAN");
   });
 });
 

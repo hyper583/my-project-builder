@@ -45,6 +45,32 @@ test.describe("demo mode and academic integrity", () => {
     await expect(page.getByRole("link", { name: /download/i })).toHaveCount(0);
   });
 
+  test("a free student cannot download their own project either", async ({ page }) => {
+    // The paywall the business rests on. A free plan generates the project and
+    // shows every word of it; what it withholds is the file. This was open
+    // until recently — a free account could export a complete real project,
+    // and the only export the paid plan added was the *sample*, which charged
+    // for the demonstration and released the deliverable.
+    const user = makeUser("realexport");
+    await register(page, user);
+
+    await page.getByRole("button", { name: "Create New Project" }).click();
+    await page
+      .getByLabel("Project topic")
+      .fill("Effect of mobile phone use on sleep quality among nursing students");
+    await page.getByRole("button", { name: "Skip setup" }).click();
+    await page.waitForURL(/\/projects\/[^/]+\/blueprint/, { timeout: 30_000 });
+
+    const projectId = /\/projects\/([^/]+)\//.exec(page.url())![1]!;
+    await page.goto(`/projects/${projectId}/export`);
+
+    // Told what is withheld and why, rather than an empty page or a dead
+    // button. The reason key must be present in the page's denial map — a
+    // missing one blocks the export while explaining nothing.
+    await expect(page.getByText(/part of the paid plan/i).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /download/i })).toHaveCount(0);
+  });
+
   test("the dashboard shows the sample as a distinct kind of project", async ({ page }) => {
     const user = makeUser("badge");
     await register(page, user);
