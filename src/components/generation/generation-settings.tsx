@@ -6,6 +6,8 @@ import { AlertCircle, Check, Loader2, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { saveGenerationSettings } from "@/server/actions/generation-settings";
+import { wordsForPages, wordsPerPage } from "@/server/services/generation/budget";
+import type { ExportFormatting } from "@/server/services/export/document";
 
 /**
  * How long the document should be, and how recent its sources must be.
@@ -21,14 +23,17 @@ export function GenerationSettings({
   minPages,
   maxPages,
   sourceRecencyYears,
-  wordsPerPage,
+  formatting,
+  sectionCount,
 }: {
   projectId: string;
   minPages: number | null;
   maxPages: number | null;
   sourceRecencyYears: number | null;
-  /** Derived from the project's own font size, spacing and margins. */
-  wordsPerPage: number;
+  /** The project's own font size, spacing and margins. */
+  formatting: ExportFormatting;
+  /** Sections drive the title pages, headings and markers that carry no prose. */
+  sectionCount: number;
 }) {
   const router = useRouter();
   const [min, setMin] = useState(minPages ?? 40);
@@ -92,8 +97,8 @@ export function GenerationSettings({
               Length
             </label>
             <span className="tabular text-sm text-muted-foreground">
-              {min}–{max} pages · roughly {(min * wordsPerPage).toLocaleString()}–
-              {(max * wordsPerPage).toLocaleString()} words
+              {min}–{max} pages · roughly {wordsForPages(min, formatting, sectionCount).toLocaleString()}–
+              {wordsForPages(max, formatting, sectionCount).toLocaleString()} words
             </span>
           </div>
 
@@ -132,8 +137,9 @@ export function GenerationSettings({
 
           <p className="mt-2 text-xs leading-relaxed text-subtle-foreground">
             Estimated from your own font size, line spacing and margins — about{" "}
-            <span className="tabular">{wordsPerPage}</span> words a page. Change those and this
-            moves with them.
+            <span className="tabular">{wordsPerPage(formatting)}</span> words a page of prose, less
+            the title pages, contents, headings and reference list. Change those and this moves
+            with them.
           </p>
         </div>
 

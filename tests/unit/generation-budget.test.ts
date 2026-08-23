@@ -4,6 +4,8 @@ import {
   computeBudget,
   distribute,
   estimatePages,
+  furniturePages,
+  wordsForPages,
   sectionWeight,
   wordsPerPage,
 } from "@/server/services/generation/budget";
@@ -45,16 +47,26 @@ describe("wordsPerPage", () => {
     expect(wide).toBeLessThan(tight);
   });
 
-  it("lands near the figure departments actually quote", () => {
-    // 12pt double-spaced is conventionally about 250 words a page.
+  it("reports the density a real document reaches, not a column of text", () => {
+    // 12pt double-spaced is conventionally quoted as about 250 words a page.
+    // Running prose does not quite reach that, because paragraph spacing
+    // accumulates and short closing lines are wasted; measured against the
+    // real renderer it lands near 218 for this layout.
+    //
+    // The band is deliberately tight. It was previously 180 to 330, which is
+    // wide enough that an estimate running 40% optimistic sat inside it
+    // unnoticed — a student who asked for 60 to 80 pages was handed 99.
     const typical = wordsPerPage({
       ...DEFAULT_FORMATTING,
       fontSizePt: 12,
       lineSpacing: 2,
       marginInches: { top: 1, right: 1, bottom: 1, left: 1 },
     });
-    expect(typical).toBeGreaterThan(180);
-    expect(typical).toBeLessThan(330);
+
+    expect(typical).toBeGreaterThan(210);
+    expect(typical).toBeLessThan(226);
+    // Comfortably under the typographic convention it is derived from.
+    expect(typical).toBeLessThan(250);
   });
 });
 
@@ -68,10 +80,15 @@ describe("computeBudget", () => {
   it("turns a page range into a word range", () => {
     const budget = computeBudget({ minPages: 40, maxPages: 60 }, DEFAULT_FORMATTING, 20)!;
 
-    expect(budget.minWords).toBe(40 * budget.wordsPerPage);
-    expect(budget.maxWords).toBe(60 * budget.wordsPerPage);
+    expect(budget.minWords).toBe(wordsForPages(40, DEFAULT_FORMATTING, 20));
+    expect(budget.maxWords).toBe(wordsForPages(60, DEFAULT_FORMATTING, 20));
     expect(budget.totalWords).toBeGreaterThan(budget.minWords);
     expect(budget.totalWords).toBeLessThan(budget.maxWords);
+
+    // And materially fewer words than the page count times the prose density.
+    // That naive product is the mistake this replaced: it assumed every page
+    // was full of prose, and produced a document half again too long.
+    expect(budget.minWords).toBeLessThan(40 * budget.wordsPerPage);
   });
 
   it("honours a one-sided minimum without inventing an exact target", () => {
@@ -83,7 +100,7 @@ describe("computeBudget", () => {
   it("honours a one-sided maximum", () => {
     const budget = computeBudget({ minPages: null, maxPages: 30 }, DEFAULT_FORMATTING, 20)!;
     expect(budget.minWords).toBeLessThan(budget.maxWords);
-    expect(budget.maxWords).toBe(30 * budget.wordsPerPage);
+    expect(budget.maxWords).toBe(wordsForPages(30, DEFAULT_FORMATTING, 20));
   });
 
   it("asks for more words when the layout fits fewer per page", () => {
@@ -150,12 +167,59 @@ describe("distribution across sections", () => {
 });
 
 describe("estimatePages", () => {
-  it("is the inverse of the word budget", () => {
-    const perPage = wordsPerPage(DEFAULT_FORMATTING);
-    expect(estimatePages(perPage * 10, DEFAULT_FORMATTING)).toBe(10);
+  it("is the exact inverse of the target it was budgeted from", () => {
+    // The invariant that matters to a student: told 70 pages before
+    // generating, they must be told about 70 afterwards. These two functions
+    // drifting apart is how the product ends up contradicting itself.
+    for (const sections of [12, 24, 40]) {
+      for (const target of [40, 70, 100]) {
+        const words = wordsForPages(target, DEFAULT_FORMATTING, sections);
+        expect(estimatePages(words, DEFAULT_FORMATTING, sections), `${target}pp/${sections}`).toBe(
+          target,
+        );
+      }
+    }
   });
 
-  it("never reports zero pages for text that exists", () => {
-    expect(estimatePages(5, DEFAULT_FORMATTING)).toBe(1);
+  it("counts the structure a barely-written project still renders", () => {
+    // Five words across a 24-section project is not one page: the headings,
+    // title pages and contents exist as soon as the structure does, and they
+    // are what would come out of the printer.
+    expect(estimatePages(5, DEFAULT_FORMATTING, 24)).toBeGreaterThan(1);
+    // A project with no structure at all is a different matter.
+    expect(estimatePages(5, DEFAULT_FORMATTING, 0)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("furniturePages", () => {
+  it("charges for the pages that carry no prose", () => {
+    // Title page, contents, reference list, chapter breaks, headings and
+    // markers. Ignoring these is what made the estimate 40% optimistic.
+    expect(furniturePages(24, DEFAULT_FORMATTING)).toBeGreaterThan(10);
+  });
+
+  it("grows with the number of sections", () => {
+    expect(furniturePages(40, DEFAULT_FORMATTING)).toBeGreaterThan(
+      furniturePages(12, DEFAULT_FORMATTING),
+    );
+  });
+
+  it("grows with line spacing, because a page then holds fewer lines", () => {
+    const single = furniturePages(24, { ...DEFAULT_FORMATTING, lineSpacing: 1 });
+    const double = furniturePages(24, { ...DEFAULT_FORMATTING, lineSpacing: 2 });
+    expect(double).toBeCloseTo(single * 2, 5);
+  });
+});
+
+describe("wordsForPages", () => {
+  it("asks for fewer words than a naive page count would", () => {
+    // The bug in one assertion: multiplying a page target by words-per-page
+    // ignores everything on a page that is not prose.
+    const naive = 70 * wordsPerPage(DEFAULT_FORMATTING);
+    expect(wordsForPages(70, DEFAULT_FORMATTING, 24)).toBeLessThan(naive);
+  });
+
+  it("still asks for some prose when the target is smaller than its own furniture", () => {
+    expect(wordsForPages(5, DEFAULT_FORMATTING, 40)).toBeGreaterThan(0);
   });
 });

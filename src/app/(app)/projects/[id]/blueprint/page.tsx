@@ -9,7 +9,6 @@ import { GenerationSettings } from "@/components/generation/generation-settings"
 import { GenerationPanel } from "@/components/generation/generation-panel";
 import { resolveExportPolicy } from "@/server/services/export/policy";
 import { parseFormatting } from "@/server/services/export/assemble";
-import { wordsPerPage } from "@/server/services/generation/budget";
 import { METHODOLOGY_FORMS, methodologyKeyFor } from "@/lib/methodology";
 import { aiConfigured } from "@/server/services/ai";
 import { requireProject } from "@/server/dal/projects";
@@ -108,7 +107,10 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
     where: { projectId: id },
     select: { minPages: true, maxPages: true, sourceRecencyYears: true },
   });
-  const perPage = wordsPerPage(parseFormatting(f));
+  const layout = parseFormatting(f);
+  // Only sections carry prose; chapters are containers. The count drives the
+  // headings and markers that take pages without taking words.
+  const proseSectionCount = p.sections.filter((s) => s.parentId !== null).length;
 
 
   const methodologyForm = METHODOLOGY_FORMS[methodologyKeyFor(p.projectType)];
@@ -252,7 +254,8 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
           minPages={generationSettings?.minPages ?? null}
           maxPages={generationSettings?.maxPages ?? null}
           sourceRecencyYears={generationSettings?.sourceRecencyYears ?? null}
-          wordsPerPage={perPage}
+          formatting={layout}
+          sectionCount={proseSectionCount}
         />
       </div>
 

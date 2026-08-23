@@ -22,7 +22,73 @@ import type { ExportFormatting } from "@/server/services/export/document";
  */
 const WORDS_PER_PAGE_BASE = 500;
 
-/** Words per page for a given layout. */
+/**
+ * How much of a prose page is actually reached.
+ *
+ * The figure above describes an unbroken column of text, and running prose is
+ * not one: paragraph spacing accumulates and the odd short line at the end of
+ * a paragraph is wasted. Measured against the real renderer at 0.87.
+ */
+const STRUCTURAL_DENSITY = 0.87;
+
+/**
+ * The pages a document spends on things that are not prose.
+ *
+ * This is the part the estimate used to ignore, and it is not small. A project
+ * carries a title page, a table of contents and a reference list; every
+ * chapter begins on a fresh page and so leaves a part-empty one behind it;
+ * every section heading takes vertical space and gives back no words; and in a
+ * real project the tracked `[STUDENT DATA REQUIRED: …]` markers render as
+ * padded blocks that occupy several lines to say very little.
+ *
+ * Measured, not guessed. Rendering documents through the real PDF renderer
+ * while varying words, sections and references independently fits
+ *
+ *     pages ≈ words / density  +  0.59 × sections  +  5
+ *
+ * at double spacing, to within a page or two at every point sampled. Both
+ * constants scale with line spacing, since each is a fixed vertical distance
+ * on a page that holds fewer lines as spacing grows — hence the multiplication
+ * below rather than a flat figure.
+ *
+ * Reference count barely matters: eight references against forty moved the
+ * total by two pages, so it is folded into the baseline rather than modelled.
+ *
+ * Ignoring all of this ran the estimate about 40% optimistic. The first real
+ * project asked for 60 to 80 pages and rendered to 99.
+ */
+const BASELINE_PAGES_PER_SPACING = 2.5;
+const SECTION_PAGES_PER_SPACING = 0.3;
+
+export function furniturePages(sectionCount: number, formatting: ExportFormatting): number {
+  const spacing = Math.max(1, formatting.lineSpacing);
+  return spacing * (BASELINE_PAGES_PER_SPACING + SECTION_PAGES_PER_SPACING * sectionCount);
+}
+
+/**
+ * Words needed to fill a given number of pages.
+ *
+ * The single conversion from pages to words. The wizard's preview and the
+ * generator's budget must both come through here, or the product promises a
+ * length it then does not produce.
+ */
+export function wordsForPages(
+  pages: number,
+  formatting: ExportFormatting,
+  sectionCount: number,
+): number {
+  const prosePages = pages - furniturePages(sectionCount, formatting);
+  // A target smaller than its own furniture still needs *some* prose, or a
+  // short proposal would be budgeted at zero words.
+  return Math.max(600, Math.round(prosePages * wordsPerPage(formatting)));
+}
+
+/**
+ * Words per page of running prose.
+ *
+ * Prose only — this is not the figure to multiply a page target by, because a
+ * document is not made only of prose. Use `wordsForPages` for that.
+ */
 export function wordsPerPage(formatting: ExportFormatting): number {
   // Line spacing is the dominant factor: double spacing halves the lines that
   // fit, so it roughly halves the words.
@@ -38,7 +104,9 @@ export function wordsPerPage(formatting: ExportFormatting): number {
   const textHeight = Math.max(3, 11.69 - top - bottom); // and 11.69in tall
   const areaFactor = (textWidth * textHeight) / ((8.27 - 2) * (11.69 - 2));
 
-  return Math.round(WORDS_PER_PAGE_BASE * spacingFactor * sizeFactor * areaFactor);
+  return Math.round(
+    WORDS_PER_PAGE_BASE * spacingFactor * sizeFactor * areaFactor * STRUCTURAL_DENSITY,
+  );
 }
 
 export interface WordBudget {
@@ -73,8 +141,8 @@ export function computeBudget(
   const minPages = min ?? Math.max(1, (max ?? 1) * 0.75);
   const maxPages = max ?? (min ?? 1) * 1.25;
 
-  const minWords = Math.round(minPages * perPage);
-  const maxWords = Math.round(maxPages * perPage);
+  const minWords = wordsForPages(minPages, formatting, sectionCount);
+  const maxWords = wordsForPages(maxPages, formatting, sectionCount);
 
   // Aim at the middle, so overshooting one section does not immediately break
   // the upper bound.
@@ -131,7 +199,18 @@ export function distribute(
   );
 }
 
-/** Estimated page count for text already written. */
-export function estimatePages(words: number, formatting: ExportFormatting): number {
-  return Math.max(1, Math.round(words / wordsPerPage(formatting)));
+/**
+ * Estimated page count for text already written.
+ *
+ * The inverse of `wordsForPages`, and it must stay the inverse: a student who
+ * is told 70 pages before generating and 99 afterwards has been told two
+ * different things by the same product.
+ */
+export function estimatePages(
+  words: number,
+  formatting: ExportFormatting,
+  sectionCount: number,
+): number {
+  const prosePages = words / wordsPerPage(formatting);
+  return Math.max(1, Math.round(prosePages + furniturePages(sectionCount, formatting)));
 }
