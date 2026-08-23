@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 
-import { env } from "@/lib/env";
+import { env, isGoogleAuthConfigured } from "@/lib/env";
 import { prisma } from "@/server/db";
 import { emailDriver } from "@/server/services/email";
 
@@ -34,6 +34,29 @@ export const auth = betterAuth({
       suspendedAt: { type: "date", required: false, input: false },
     },
   },
+
+  /**
+   * Google sign-in, offered only when it is actually configured.
+   *
+   * Spread rather than declared, so an installation without credentials
+   * registers no provider at all instead of one that fails at the redirect.
+   * The sign-in page reads the same flag and omits the button to match.
+   *
+   * Nothing else needs to change for it: the `create` hooks below run on user
+   * creation regardless of how the account arrived, so a Google sign-up gets
+   * the same admin bootstrap check and the same audit row as an email one, and
+   * `role` and `planTier` stay server-controlled through `input: false`.
+   */
+  ...(isGoogleAuthConfigured
+    ? {
+        socialProviders: {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID!,
+            clientSecret: env.GOOGLE_CLIENT_SECRET!,
+          },
+        },
+      }
+    : {}),
 
   databaseHooks: {
     user: {

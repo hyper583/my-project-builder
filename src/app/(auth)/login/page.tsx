@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 
 import { LoginForm } from "@/components/auth/auth-forms";
+import { isGoogleAuthConfigured } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -29,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       ) : null}
 
       <div className="mt-7">
-        <LoginForm />
+        <LoginForm googleEnabled={isGoogleAuthConfigured} />
       </div>
     </>
   );
