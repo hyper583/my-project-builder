@@ -39,8 +39,20 @@ if (!/mpb_test|_test/.test(testDatabaseUrl)) {
 const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;
 
+/**
+ * The address the sweep registers to obtain an admin.
+ *
+ * Exported so the spec and the server agree on it — a mismatch would leave the
+ * account a student and the admin routes would 404 with no obvious reason.
+ */
+export const ADMIN_EMAIL = "e2e-admin@example.test";
+
 export default defineConfig({
   testDir: "./tests/e2e",
+
+  // Clears the fixed admin address before the run; see the file for why that
+  // one account cannot be made unique per test.
+  globalSetup: "./tests/e2e/global-setup.ts",
 
   // One worker against one database. Parallel workers would race on the
   // shared reference data and on each other's sessions.
@@ -49,7 +61,9 @@ export default defineConfig({
 
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  timeout: 60_000,
+  // The sweep visits many pages and follows every link on each, so it needs
+  // considerably longer than a test that drives one flow.
+  timeout: 180_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
 
@@ -78,6 +92,11 @@ export default defineConfig({
       DATABASE_POOL_MAX: "1",
       BETTER_AUTH_SECRET: "e2e-test-secret-not-used-anywhere-else",
       BETTER_AUTH_URL: baseURL,
+      // A third of the routes are behind the admin role, and without this the
+      // suite could not reach any of them. Registering this exact address
+      // promotes the account through the existing bootstrap hook, so the tests
+      // use the real mechanism rather than writing a role into the database.
+      ADMIN_BOOTSTRAP_EMAIL: ADMIN_EMAIL,
       // The suite must never spend real API credit, and must exercise the
       // "AI not configured" state the brief requires.
       AI_PROVIDER: "mock",

@@ -106,8 +106,14 @@ export default async function AdminProjectsPage({ searchParams }: PageProps<"/ad
             </select>
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+          <label
+            htmlFor="include-deleted"
+            className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+          >
+            {/* Named explicitly rather than by wrapping — see the note on the
+                wizard's radio fields. */}
             <input
+              id="include-deleted"
               type="checkbox"
               name="deleted"
               value="1"

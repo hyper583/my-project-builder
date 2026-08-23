@@ -160,13 +160,20 @@ export function RadioField({
         {options.map((o) => (
           <label
             key={o.value}
+            htmlFor={`${name}-${o.value}`}
             className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors duration-200 ${
               value === o.value
                 ? "border-primary bg-muted font-medium"
                 : "border-border hover:bg-muted"
             }`}
           >
+            {/* Explicit id and htmlFor rather than relying on the label
+                wrapping the input. Both are valid HTML, but the wrapped form
+                renders here as a control named "on" — its value rather than
+                its label — which is the unnamed-control defect this codebase
+                has already had to fix twice. */}
             <input
+              id={`${name}-${o.value}`}
               type="radio"
               name={name}
               value={o.value}
