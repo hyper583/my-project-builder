@@ -143,6 +143,24 @@ export async function runExport(options: {
       withDisclaimer: policy.disclaimer,
     });
 
+    /*
+     * A document with no words is a title page and nothing else.
+     *
+     * Rendering it succeeds, so the student gets a file, opens it, and finds
+     * their project missing — having spent an export to learn that. Refusing is
+     * both more useful and more honest, and the check is on actual words rather
+     * than on whether generation ran, so a project written by hand in the
+     * editor exports normally.
+     */
+    if (countWords(document) === 0) {
+      throw new AppError("EXPORT_FAILED", {
+        message: `Project ${project.id} has no written content to export`,
+        userMessage:
+          "There is nothing written to export yet. Generate the project, or write a " +
+          "section yourself, and try again.",
+      });
+    }
+
     const rendered = format === "DOCX" ? await renderDocx(document) : await renderPdf(document);
 
     /*

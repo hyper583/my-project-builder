@@ -70,8 +70,13 @@ export function buildStages(chapters: readonly ChapterInput[]): Stage[] {
 }
 
 /**
- * Fallback used when a project has no chapters yet. Keeps the queue honest —
- * it still produces real stages rather than pretending work happened.
+ * The fixed stages alone, without any chapter work.
+ *
+ * Kept for callers that need the shape of a run rather than one project's, and
+ * NOT used as a fallback for a chapter-less project. That was the original
+ * intent and it was wrong: those stages all succeed while writing nothing, the
+ * project is marked READY, and the run is spent. `enqueueGeneration` now
+ * refuses such a project outright instead.
  */
 export const GENERATION_STAGES: readonly Stage[] = [
   ...PROLOGUE_STAGES,

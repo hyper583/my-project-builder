@@ -145,3 +145,36 @@ describe("enqueueing", () => {
     ]);
   });
 });
+
+describe("a project with nothing to write", () => {
+  it("is refused rather than run to a green finish", async () => {
+    const user = await createUser();
+    const project = await createProject(user.id, { title: "No structure" });
+
+    // No chapters. `buildStages([])` would yield only the prologue and
+    // epilogue: every stage succeeds, the project is marked READY, and not a
+    // word exists — having spent one of the runs the plan allows.
+    await expect(enqueueGeneration(project.id)).rejects.toThrow();
+    expect(await db.generationJob.count({ where: { projectId: project.id } })).toBe(0);
+  });
+
+  it("says which step fixes it", async () => {
+    const user = await createUser();
+    const project = await createProject(user.id, { title: "No structure" });
+
+    // The message reaches a student through the blueprint's error region, so
+    // it has to name the thing they should do next.
+    await expect(enqueueGeneration(project.id)).rejects.toThrow(/no chapters/i);
+  });
+
+  it("leaves the project's status alone when it refuses", async () => {
+    const user = await createUser();
+    const project = await createProject(user.id, { title: "No structure" });
+
+    await enqueueGeneration(project.id).catch(() => {});
+
+    // A refusal must not leave it stuck showing GENERATING forever.
+    const after = await db.project.findUniqueOrThrow({ where: { id: project.id } });
+    expect(after.status).not.toBe("GENERATING");
+  });
+});
