@@ -7,6 +7,7 @@ import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
 import { fail, ok, type ActionResult } from "@/server/errors";
+import { syncPlaceholders } from "@/server/services/placeholders";
 
 /**
  * Section editing.
@@ -16,7 +17,6 @@ import { fail, ok, type ActionResult } from "@/server/errors";
  * back" work rather than being a promise the UI cannot keep.
  */
 
-const PLACEHOLDER_PATTERN = /\[STUDENT DATA REQUIRED:\s*([^\]]+)\]/gi;
 
 const saveSchema = z.object({
   projectId: z.string().min(1),
@@ -54,23 +54,11 @@ export async function saveSection(
 
     // Keep the placeholder tally honest as the student writes: resolving a
     // placeholder by replacing it with real data should reduce the count.
-    await prisma.sectionPlaceholder.deleteMany({
-      where: { sectionId: section.id, resolved: false },
-    });
-    const found = [...text.matchAll(PLACEHOLDER_PATTERN)].map((m) => m[1]!.trim());
-    if (found.length > 0) {
-      await prisma.sectionPlaceholder.createMany({
-        data: found.map((detail) => ({
-          sectionId: section.id,
-          label: "STUDENT DATA REQUIRED",
-          detail: detail.slice(0, 500),
-        })),
-      });
-    }
+    const placeholders = await syncPlaceholders(section.id, text);
 
     return ok({
       wordCount,
-      placeholders: found.length,
+      placeholders,
       savedAt: new Date().toISOString(),
     });
   } catch (error) {
