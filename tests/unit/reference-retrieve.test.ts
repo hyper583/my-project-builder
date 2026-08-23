@@ -83,7 +83,19 @@ describe("reading real database responses", () => {
     expect(openAlex.url).toBe("https://doi.org/10.1186/s41239-023-00411-8");
 
     const crossref = sources.find((s) => s.source === "crossref")!;
-    expect(crossref.authors).toEqual(["Bozzola, Elena", "Spina, Giulia"]);
+    /*
+     * "Given Family", the same shape OpenAlex returns above.
+     *
+     * Crossref supplies the parts separately and this used to store them as
+     * "Family, Given". Everything downstream then joined the authors of a work
+     * with commas, so four authors rendered as
+     * "Saidyjeng, Lamin, Gitteh, Alasana" — eight names, or four, with nothing
+     * to say which. The model was shown that list and cited none of it.
+     */
+    expect(crossref.authors).toEqual(["Elena Bozzola", "Giulia Spina"]);
+    // The failure mode in one line: a name carrying a comma cannot survive
+    // being joined to its neighbours by one.
+    for (const author of crossref.authors) expect(author).not.toContain(",");
     expect(crossref.year).toBe("2022");
     // JATS markup is stripped from the abstract.
     expect(crossref.abstract).toBe("Social media use has grown.");

@@ -40,15 +40,28 @@ export interface ProjectMemory {
  * feeding them back as citable would launder a guess into an authority.
  */
 async function citableReferences(projectId: string, limit: number): Promise<CitableReference[]> {
+  /*
+   * Insertion order, which is citation-rank order.
+   *
+   * `retrieveSources` sorts by how often a work has been cited — for a
+   * literature review the widely-read papers are the ones a supervisor expects
+   * — and `findSources` writes them in that order. Ordering by year here threw
+   * that away and put the newest first, so the model was shown obscure papers
+   * from this year while the foundational, heavily-cited ones sat at the
+   * bottom of a list of thirty. It cited nothing from the list at all.
+   */
   const rows = await prisma.projectReference.findMany({
     where: { projectId, verification: "VERIFIED" },
-    orderBy: [{ year: "desc" }, { title: "asc" }],
+    orderBy: { createdAt: "asc" },
     take: limit,
   });
 
   return rows.flatMap((row) => {
-    const inText = inTextCitation({ authors: row.authors, year: row.year });
-    const full = formatReference(row);
+    // Some records repeat an author verbatim. Left alone it reaches the model
+    // as "Keerthana L E, Keerthana L E", which reads as two people.
+    const authors = [...new Set(row.authors.map((a) => a.trim()).filter(Boolean))];
+    const inText = inTextCitation({ authors, year: row.year });
+    const full = formatReference({ ...row, authors });
     // A work with no usable author or year has no citation form, so offering
     // it invites the model to invent one.
     if (!inText || !full) return [];
