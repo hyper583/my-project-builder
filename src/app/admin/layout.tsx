@@ -18,6 +18,7 @@ const ADMIN_NAV = [
   { href: "/admin", label: "Health" },
   { href: "/admin/users", label: "People" },
   { href: "/admin/projects", label: "Projects" },
+  { href: "/admin/presets", label: "Presets" },
 ] as const;
 
 /**
