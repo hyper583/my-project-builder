@@ -29,7 +29,12 @@ test.describe("demo mode and academic integrity", () => {
     await register(page, user);
 
     await page.getByRole("button", { name: /sample project/i }).click();
-    await page.waitForURL(/\/projects\/[^/]+\/blueprint/, { timeout: 60_000 });
+    await page.waitForURL(/\/projects\/([^/]+)\/blueprint/, { timeout: 60_000 });
+
+    // Export moved off the blueprint onto its own page — the blueprint had
+    // grown to six stacked panels and nine thousand pixels.
+    const projectId = /\/projects\/([^/]+)\//.exec(page.url())![1]!;
+    await page.goto(`/projects/${projectId}/export`);
 
     // The control explains the upgrade rather than vanishing or silently
     // producing a file — a free plan has canExportDemo: false.

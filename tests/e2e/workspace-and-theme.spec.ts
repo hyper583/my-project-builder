@@ -67,25 +67,34 @@ test.describe("theme", () => {
     // stamps it rather than deferring to the OS.
     await expect(root).toHaveAttribute("data-theme", "dark");
 
-    await page.getByRole("button", { name: "Light theme" }).first().click();
+    // Appearance is a preference, so the control lives in Settings rather than
+    // in the navigation. It used to be in both, which meant two copies of the
+    // same state to keep in step.
+    await page.goto("/settings");
+
+    // A radiogroup, not a set of toggles: the three choices are mutually
+    // exclusive, so the control says so to anyone not looking at it.
+    const appearance = page.getByRole("radiogroup", { name: "Colour theme" });
+
+    await appearance.getByRole("radio", { name: "Light" }).click();
     await expect(root).toHaveAttribute("data-theme", "light");
 
     await page.reload();
     await expect(root).toHaveAttribute("data-theme", "light");
 
-    // aria-pressed must agree with what is on screen. This is the hydration
-    // bug that once left the control permanently misreporting itself.
-    await expect(page.getByRole("button", { name: "Light theme" }).first()).toHaveAttribute(
-      "aria-pressed",
+    // The checked state must agree with what is on screen. This is the
+    // hydration bug that once left the control permanently misreporting itself.
+    await expect(appearance.getByRole("radio", { name: "Light" })).toHaveAttribute(
+      "aria-checked",
       "true",
     );
-    await expect(page.getByRole("button", { name: "Dark theme" }).first()).toHaveAttribute(
-      "aria-pressed",
+    await expect(appearance.getByRole("radio", { name: "Dark" })).toHaveAttribute(
+      "aria-checked",
       "false",
     );
 
     // "System" removes the attribute rather than storing a guess about the OS.
-    await page.getByRole("button", { name: "System theme" }).first().click();
+    await appearance.getByRole("radio", { name: "System" }).click();
     await expect(root).not.toHaveAttribute("data-theme", /.+/);
 
     // And it SURVIVES a reload. This is the assertion that matters most now
@@ -94,10 +103,9 @@ test.describe("theme", () => {
     // silently convert a deliberate "follow my OS" into dark.
     await page.reload();
     await expect(root).not.toHaveAttribute("data-theme", /.+/);
-    await expect(page.getByRole("button", { name: "System theme" }).first()).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      page.getByRole("radiogroup", { name: "Colour theme" }).getByRole("radio", { name: "System" }),
+    ).toHaveAttribute("aria-checked", "true");
   });
 });
 

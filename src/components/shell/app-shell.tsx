@@ -17,7 +17,6 @@ import { buildCommands, type PaletteProject } from "@/components/shell/commands"
 import { PaletteScope, type PaletteContribution } from "@/components/shell/palette-scope";
 import { Wordmark } from "@/components/shell/wordmark";
 import { CommandPalette } from "@/components/ui/command-palette";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useTheme } from "@/components/theme/theme-provider";
 import { usePersistedFlag } from "@/lib/use-client-store";
 
@@ -233,7 +232,10 @@ export function AppShell({
                 </kbd>
               </button>
 
-              <ThemeToggle className="hidden sm:inline-flex" />
+              {/* No theme control here. Appearance is a preference, and
+                  Settings already has an Appearance section — a second copy in
+                  the navigation is one more thing to keep in step, and puts a
+                  setting where people look for their way around. */}
               <AccountMenu
                 email={user.email}
                 name={user.name}
@@ -368,9 +370,6 @@ function Sidebar({
           <span className={collapsed ? "lg:hidden" : ""}>Collapse</span>
         </button>
 
-        <div className={`mt-2 px-1 sm:hidden ${collapsed ? "lg:hidden" : ""}`}>
-          <ThemeToggle />
-        </div>
       </div>
     </aside>
   );
