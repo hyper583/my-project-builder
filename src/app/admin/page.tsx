@@ -1,178 +1,227 @@
-import { JobHealth, RecentErrors, Workers, type ErrorRow } from "@/components/admin/ops-panels";
-import { entitlementsFor, type PlanTier } from "@/config/plans";
-import { requireAdmin } from "@/server/dal/session";
-import { prisma } from "@/server/db";
-import { AILMENT_REMEDY, listAilingJobs, listWorkers } from "@/server/services/ops/health";
+import Link from "next/link";
+import { ArrowRight, TriangleAlert } from "lucide-react";
 
-/** Never cached: a monitoring view showing stale state is worse than none. */
+import { CountUp } from "@/components/motion/count-up";
+import { requireAdmin } from "@/server/dal/session";
+import { getOverview } from "@/server/services/ops/overview";
+
 export const dynamic = "force-dynamic";
 
-/** Start of the rolling 30-day window plan limits are counted over. */
-function windowStart(): Date {
-  return new Date(Date.now() - 30 * 24 * 3600_000);
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
 /**
- * Operations.
+ * A figure and what it means.
  *
- * Every figure here reads a column that exists. There is no "AI spend" chart,
- * because cost per token is not recorded anywhere — token counts are, so token
- * counts are what it reports. A plausible-looking cost graph would be a
- * fabricated number in a product whose whole premise is not producing them.
+ * `detail` is not decoration. A count on its own invites the reader to supply
+ * their own denominator, and the wrong one is worse than none.
  */
-export default async function AdminOpsPage() {
+function Stat({
+  label,
+  value,
+  detail,
+  tone = "default",
+  href,
+}: {
+  label: string;
+  value: number;
+  detail: string;
+  tone?: "default" | "warning";
+  href?: string;
+}) {
+  const body = (
+    <>
+      <dt className="text-[0.8125rem] text-muted-foreground">{label}</dt>
+      <dd className="mt-3">
+        <span
+          className={`mono-figure text-[2rem] leading-none font-medium ${
+            tone === "warning" && value > 0 ? "text-warning" : ""
+          }`}
+        >
+          <CountUp value={value} />
+        </span>
+        <span className="mt-2 block text-xs text-subtle-foreground">{detail}</span>
+      </dd>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="lift lift-scale focus-glow rounded-xl border border-border bg-card p-4 elevated-1 hover:border-border-strong"
+      >
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className="rounded-xl border border-border bg-card p-4 elevated-1">{body}</div>;
+}
+
+/**
+ * Overview.
+ *
+ * Built last of the five sections, deliberately: a summary is only worth
+ * anything once the things it summarises exist and are managed somewhere. Built
+ * first it would have been charts over data nobody could act on.
+ *
+ * Every figure counts rows that exist. There is no spend chart, because cost
+ * per token is recorded nowhere — and a plausible-looking number assembled from
+ * assumptions is exactly what this product exists not to produce.
+ */
+export default async function AdminOverviewPage() {
   await requireAdmin();
+  const data = await getOverview();
 
-  const since = windowStart();
-
-  const [ailing, workers, errors, heaviest] = await Promise.all([
-    listAilingJobs(),
-    listWorkers(),
-    prisma.errorLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 25,
-      select: { id: true, code: true, summary: true, origin: true, createdAt: true, detail: true },
-    }),
-    // Usage against plan limits. Grouped in the database rather than loaded and
-    // counted here, so this stays one query as the table grows.
-    prisma.usageRecord.groupBy({
-      by: ["userId", "kind"],
-      where: { createdAt: { gte: since } },
-      _count: { _all: true },
-      _sum: { quantity: true },
-    }),
-  ]);
-
-  const errorRows: ErrorRow[] = errors.map((row) => ({
-    id: row.id,
-    code: row.code,
-    summary: row.summary,
-    origin: row.origin,
-    createdAt: row.createdAt.toISOString(),
-    hasDetail: Boolean(row.detail),
-  }));
-
-  // Only users who actually did something in the window; a list of everyone at
-  // zero would bury the ones worth looking at.
-  const userIds = [...new Set(heaviest.map((row) => row.userId))];
-  const users = userIds.length
-    ? await prisma.user.findMany({
-        where: { id: { in: userIds } },
-        select: { id: true, email: true, planTier: true },
-      })
-    : [];
-  const byId = new Map(users.map((u) => [u.id, u]));
-
-  const usage = userIds
-    .map((id) => {
-      const user = byId.get(id);
-      const rows = heaviest.filter((row) => row.userId === id);
-      const generations = rows.find((r) => r.kind === "AI_GENERATION")?._count._all ?? 0;
-      const edits = rows.find((r) => r.kind === "AI_EDIT")?._count._all ?? 0;
-      const tokens = rows
-        .filter((r) => r.kind === "AI_GENERATION" || r.kind === "AI_EDIT")
-        .reduce((total, r) => total + (r._sum.quantity ?? 0), 0);
-      const plan = entitlementsFor((user?.planTier ?? "FREE") as PlanTier);
-      return {
-        id,
-        email: user?.email ?? "(deleted user)",
-        plan: plan.label,
-        generations,
-        generationLimit: plan.maxGenerationsPerMonth,
-        edits,
-        editLimit: plan.maxEditsPerMonth,
-        tokens,
-        overLimit: generations > plan.maxGenerationsPerMonth || edits > plan.maxEditsPerMonth,
-      };
-    })
-    .sort((a, b) => b.tokens - a.tokens);
+  const { people, projects, generation, work, faults, windowDays } = data;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
       <header>
-        <p className="label-caps">Operations</p>
+        <p className="label-caps">Overview</p>
         <h1 className="mt-2 text-[2rem] leading-none font-semibold tracking-[-0.035em]">
-          Generation health
+          The whole product
         </h1>
         <p className="mt-2.5 max-w-2xl leading-relaxed text-muted-foreground">
-          Everything here reads real state. A job that looks stuck and a job that has
-          nothing running to claim it are different problems with different fixes, so they
-          are named separately.
+          Counts of things that exist. Rates and totals over the last {windowDays} days where
+          a window is meaningful — nothing here is projected, estimated or priced.
         </p>
       </header>
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold tracking-[-0.02em]">Jobs needing attention</h2>
-        <div className="mt-4">
-          <JobHealth jobs={ailing} remedies={AILMENT_REMEDY} />
-        </div>
+      {/* Faults and stalled work come first: they are the only things on this
+          page that might need someone to do something today. */}
+      {faults > 0 || generation.failed > 0 ? (
+        <Link
+          href="/admin/health"
+          className="lift focus-glow mt-8 flex items-center gap-3 rounded-xl border border-warning/40 bg-warning-subtle p-4"
+        >
+          <TriangleAlert className="size-5 shrink-0 text-warning" aria-hidden="true" />
+          <span className="min-w-0 flex-1 text-sm text-warning">
+            {generation.failed > 0
+              ? `${generation.failed} generation ${generation.failed === 1 ? "run has" : "runs have"} failed`
+              : null}
+            {generation.failed > 0 && faults > 0 ? " and " : null}
+            {faults > 0
+              ? `${faults} ${faults === 1 ? "fault has" : "faults have"} been recorded`
+              : null}{" "}
+            in the last {windowDays} days.
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-warning" aria-hidden="true" />
+        </Link>
+      ) : null}
+
+      <section className="mt-8">
+        <h2 className="label-caps">People</h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Accounts"
+            value={people.total}
+            detail={`${people.newThisWindow} joined in ${windowDays} days`}
+            href="/admin/users"
+          />
+          <Stat
+            label="On a paid plan"
+            value={people.paid}
+            detail={people.total > 0 ? `of ${people.total} accounts` : "no accounts yet"}
+          />
+          <Stat
+            label="Admins"
+            value={people.admins}
+            detail="active, able to sign in"
+            href="/admin/users"
+          />
+          <Stat
+            label="Suspended"
+            value={people.suspended}
+            detail={people.suspended === 1 ? "account" : "accounts"}
+            tone="warning"
+            href="/admin/users"
+          />
+        </dl>
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold tracking-[-0.02em]">Workers</h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          A worker only claims jobs queued for its own provider.
-        </p>
-        <div className="mt-4">
-          <Workers workers={workers} />
-        </div>
+      <section className="mt-8">
+        <h2 className="label-caps">Projects</h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Active"
+            value={projects.total}
+            detail={`${projects.newThisWindow} created in ${windowDays} days`}
+            href="/admin/projects"
+          />
+          <Stat
+            label="Real projects"
+            value={projects.real}
+            detail={`${projects.demo} sample${projects.demo === 1 ? "" : "s"} alongside`}
+            href="/admin/projects?kind=REAL"
+          />
+          <Stat label="Ready" value={projects.ready} detail="generated at least once" />
+          <Stat
+            label="Deleted"
+            value={projects.deleted}
+            detail="recoverable, not erased"
+            href="/admin/projects?deleted=1"
+          />
+        </dl>
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold tracking-[-0.02em]">Recent faults</h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Summaries only. Full messages can quote a student&apos;s own text, so revealing one
-          is recorded.
-        </p>
-        <div className="mt-4">
-          <RecentErrors errors={errorRows} />
-        </div>
+      <section className="mt-8">
+        <h2 className="label-caps">Generation</h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/*
+           * Runs, successes and failures as three separate counts rather than a
+           * success rate. At these volumes a percentage swings wildly on one
+           * job and reads as precision the number does not have.
+           */}
+          <Stat label="Runs" value={generation.runs} detail={`in ${windowDays} days`} />
+          <Stat label="Succeeded" value={generation.succeeded} detail={`in ${windowDays} days`} />
+          <Stat
+            label="Failed"
+            value={generation.failed}
+            detail={`in ${windowDays} days`}
+            tone="warning"
+            href="/admin/health"
+          />
+          <Stat
+            label="In flight"
+            value={generation.inFlight}
+            detail="queued or running now"
+            href="/admin/health"
+          />
+        </dl>
       </section>
 
-      <section className="mt-10 pb-4">
-        <h2 className="text-lg font-semibold tracking-[-0.02em]">Usage against limits</h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">Last 30 days, busiest first.</p>
-
-        {usage.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground elevated-1">
-            No AI usage recorded in the last 30 days.
-          </p>
-        ) : (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-border bg-card elevated-1">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="label-caps px-4 py-3 font-medium">User</th>
-                  <th className="label-caps px-4 py-3 font-medium">Plan</th>
-                  <th className="label-caps px-4 py-3 font-medium">Generations</th>
-                  <th className="label-caps px-4 py-3 font-medium">Edits</th>
-                  <th className="label-caps px-4 py-3 font-medium">Tokens</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usage.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">{row.email}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{row.plan}</td>
-                    <td
-                      className={`mono px-4 py-3 ${row.generations > row.generationLimit ? "text-warning" : "text-muted-foreground"}`}
-                    >
-                      {row.generations}/{row.generationLimit}
-                    </td>
-                    <td
-                      className={`mono px-4 py-3 ${row.edits > row.editLimit ? "text-warning" : "text-muted-foreground"}`}
-                    >
-                      {row.edits}/{row.editLimit}
-                    </td>
-                    <td className="mono px-4 py-3 text-muted-foreground">
-                      {row.tokens.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <section className="mt-8 pb-4">
+        <h2 className="label-caps">Work done</h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Tokens"
+            value={work.tokens}
+            detail={`generation and editing, ${windowDays} days`}
+          />
+          <Stat label="Exports" value={work.exports} detail={`in ${windowDays} days`} />
+          <div className="rounded-xl border border-border bg-card p-4 elevated-1">
+            <dt className="text-[0.8125rem] text-muted-foreground">Uploads stored</dt>
+            <dd className="mt-3">
+              <span className="mono-figure text-[2rem] leading-none font-medium">
+                {formatBytes(work.storageBytes)}
+              </span>
+              <span className="mt-2 block text-xs text-subtle-foreground">
+                across every project
+              </span>
+            </dd>
           </div>
-        )}
+          <Stat
+            label="Awaiting student data"
+            value={work.unresolvedPlaceholders}
+            detail="marked places, never invented"
+          />
+        </dl>
       </section>
     </div>
   );
