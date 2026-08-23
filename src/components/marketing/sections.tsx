@@ -37,7 +37,7 @@ function Container({
 function Eyebrow({ index, children }: { index: string; children: React.ReactNode }) {
   return (
     <p className="flex items-center gap-3 text-xs font-semibold tracking-[0.18em] uppercase">
-      <span className="tabular text-accent">{index}</span>
+      <span className="mono text-primary">{index}</span>
       <span aria-hidden="true" className="draw-rule h-px w-8 bg-border-strong" />
       <span className="text-muted-foreground">{children}</span>
     </p>
@@ -149,23 +149,21 @@ function StructureFigure() {
   return (
     <figure className="rounded-xl border border-border bg-card p-5 elevated-2 sm:p-6">
       <figcaption className="mb-4 flex items-center justify-between border-b border-border pb-3">
-        <span className="text-xs font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-          Project structure
-        </span>
-        <span className="tabular text-xs text-subtle-foreground">Editable</span>
+        <span className="label-caps">Project structure</span>
+        <span className="mono text-[0.625rem] text-subtle-foreground">Editable</span>
       </figcaption>
 
       <ol className="space-y-4">
         {chapters.map((chapter) => (
           <li key={chapter.number}>
             <p className="flex items-baseline gap-2.5 text-sm font-semibold">
-              <span className="tabular font-serif text-base text-accent">{chapter.number}</span>
+              <span className="mono text-xs text-primary">{chapter.number}</span>
               {chapter.title}
             </p>
             <ul className="mt-1.5 space-y-1 border-l border-border pl-4">
               {chapter.sections.map((section, index) => (
                 <li key={section} className="flex items-baseline gap-2.5 text-sm">
-                  <span className="tabular text-xs text-subtle-foreground">
+                  <span className="mono text-[0.625rem] text-subtle-foreground">
                     {chapter.number}.{index + 1}
                   </span>
                   <span className="text-muted-foreground">{section}</span>
@@ -228,7 +226,7 @@ export function HowItWorks() {
           {STEPS.map((step, i) => (
             <Reveal as="li" key={step.title} delay={i * 60} className="border-t border-border pt-5">
               <span
-                className="tabular font-serif text-3xl leading-none text-accent"
+                className="mono-figure text-[1.75rem] leading-none font-medium text-primary"
                 aria-hidden="true"
               >
                 {String(i + 1).padStart(2, "0")}

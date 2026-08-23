@@ -17,6 +17,7 @@ import {
 } from "@/server/services/jobs/queue";
 import { isResultsChapter } from "@/server/services/jobs/stages";
 import { buildProjectMemory } from "@/server/services/memory";
+import { recordError } from "@/server/services/ops/record-error";
 
 /**
  * The staged generation pipeline.
@@ -203,7 +204,33 @@ export async function runGenerationJob(job: ClaimedJob): Promise<void> {
     },
   });
   if (!project) {
-    await failJob(job.id, job.projectId, "Project no longer exists");
+    await failJob(job.id, job.projectId, "Project no longer exists", { retryable: false });
+    return;
+  }
+
+  /*
+   * A real project may not be written by a provider that cannot generate.
+   *
+   * The mock provider emits clearly-marked placeholder prose. That is right for
+   * a development server with no key, but it must never land in a student's
+   * actual project: they would open their work and find text announcing that no
+   * AI provider is configured, sitting where their draft should be — and the
+   * job would report SUCCEEDED over the top of it.
+   *
+   * Failing loudly is the honest outcome. The queue's provider pinning should
+   * already prevent a mismatched worker from getting this far; this is the
+   * second lock, on the side that actually writes to the project.
+   */
+  if (project.kind === "REAL" && !ai.isConfigured) {
+    await failJob(
+      job.id,
+      job.projectId,
+      `Refusing to generate a real project with the "${ai.name}" provider, which produces ` +
+        `placeholder text rather than real prose. Configure an AI provider and run this again.`,
+      // Not retryable: the provider will not become configured between
+      // attempts, so retrying would only hold the project in GENERATING.
+      { retryable: false },
+    );
     return;
   }
 
@@ -375,6 +402,18 @@ export async function runGenerationJob(job: ClaimedJob): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const { willRetry } = await failJob(job.id, project.id, message);
+
+    // Persisted as well as logged. `job.error` holds the last message, but it
+    // is overwritten on the next attempt and disappears entirely once the job
+    // succeeds — so the console would show nothing for a run that failed twice
+    // and then worked, which is exactly the run worth looking at.
+    await recordError({
+      error,
+      origin: `generation:${job.id}`,
+      userId: project.userId,
+      projectId: project.id,
+    });
+
     console.error(
       `[worker] job ${job.id} failed (attempt ${job.attempts}/${job.maxAttempts})`,
       willRetry ? "— will retry" : "— giving up",

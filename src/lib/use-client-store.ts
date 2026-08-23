@@ -28,6 +28,35 @@ export function usePrefersDark(): boolean {
   );
 }
 
+/**
+ * Tracks a media query, live.
+ *
+ * For deciding what to *mount*, not what to show — CSS already handles showing
+ * and hiding, and does it without JavaScript. This exists for the workspace,
+ * where the assistant appears in a column on a wide screen and in a bottom
+ * sheet on a narrow one: rendering it in both places would give it two
+ * independent conversation states that silently diverge.
+ *
+ * The server snapshot is `true`. The server cannot measure a viewport, and a
+ * writing workspace is used on a wide screen more often than not; on a narrow
+ * one the correction happens against markup that CSS was hiding anyway, so
+ * nothing visibly moves either way.
+ */
+export function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      const list = window.matchMedia(query);
+      list.addEventListener("change", onChange);
+      return () => list.removeEventListener("change", onChange);
+    },
+    [query],
+  );
+
+  const getSnapshot = useCallback(() => window.matchMedia(query).matches, [query]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, () => true);
+}
+
 /* A single notifier for every persisted flag — writes are rare, and one
  * shared channel keeps tabs of the same document consistent. */
 const flagListeners = new Set<() => void>();

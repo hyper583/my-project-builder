@@ -48,6 +48,27 @@ export const auth = betterAuth({
           }
           return { data: user };
         },
+        // Registrations are recorded; routine sign-ins are not. At any scale a
+        // row per successful login buries the events that actually matter, and
+        // the session table already answers "who is signed in".
+        after: async (user) => {
+          try {
+            await prisma.auditLog.create({
+              data: {
+                userId: user.id,
+                action: "auth.register",
+                targetType: "user",
+                targetId: user.id,
+                // Coerced: additional fields arrive loosely typed from Better
+                // Auth, and the role is worth recording because the bootstrap
+                // hook above can make this very row an admin.
+                metadata: { email: user.email, role: String(user.role ?? "STUDENT") },
+              },
+            });
+          } catch {
+            // Never block a registration on its own audit row.
+          }
+        },
       },
     },
   },

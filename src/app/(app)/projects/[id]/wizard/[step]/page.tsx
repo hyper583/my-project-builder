@@ -1,11 +1,18 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { Button } from "@/components/ui/button";
-import { MaterialsStep, type UploadedDocument } from "@/components/wizard/materials-step";
-import { StructureStep, type StructureChapter } from "@/components/wizard/structure-step";
+import { Progress } from "@/components/ui/progress";
+import { WizardRail } from "@/components/wizard/wizard-rail";
+import {
+  MaterialsStep,
+  type UploadedDocument,
+} from "@/components/wizard/materials-step";
+import {
+  StructureStep,
+  type StructureChapter,
+} from "@/components/wizard/structure-step";
 import {
   FormattingStep,
   InstitutionStep,
@@ -16,7 +23,11 @@ import {
   TopicStep,
 } from "@/components/wizard/steps";
 import { methodologyKeyFor } from "@/lib/methodology";
-import { TOTAL_WIZARD_STEPS, WIZARD_STEPS } from "@/lib/wizard-steps";
+import {
+  TOTAL_WIZARD_STEPS,
+  WIZARD_STEPS,
+  phaseForStep,
+} from "@/lib/wizard-steps";
 import { requireProject } from "@/server/dal/projects";
 import { prisma } from "@/server/db";
 
@@ -25,10 +36,13 @@ export const metadata: Metadata = { title: "Project setup" };
 /** Empty string rather than null, so inputs stay controlled. */
 const s = (v: string | null | undefined) => v ?? "";
 
-export default async function WizardStepPage({ params }: PageProps<"/projects/[id]/wizard/[step]">) {
+export default async function WizardStepPage({
+  params,
+}: PageProps<"/projects/[id]/wizard/[step]">) {
   const { id, step: rawStep } = await params;
   const step = Number(rawStep);
-  if (!Number.isInteger(step) || step < 1 || step > TOTAL_WIZARD_STEPS) notFound();
+  if (!Number.isInteger(step) || step < 1 || step > TOTAL_WIZARD_STEPS)
+    notFound();
 
   // Ownership gate. The return value is unused because the full graph is
   // fetched below, but this call must stay: it is what makes a project
@@ -48,19 +62,34 @@ export default async function WizardStepPage({ params }: PageProps<"/projects/[i
       documents: {
         orderBy: { createdAt: "desc" },
         include: {
-          extraction: { select: { status: true, error: true, pages: true, _count: { select: { chunks: true } } } },
+          extraction: {
+            select: {
+              status: true,
+              error: true,
+              pages: true,
+              _count: { select: { chunks: true } },
+            },
+          },
         },
       },
     },
   });
   if (!detail) notFound();
 
-  const [institutionNames, departmentNames, citationStyles, projectTypes] = await Promise.all([
-    prisma.institution.findMany({ select: { name: true }, orderBy: { name: "asc" } }),
-    prisma.department.findMany({ select: { name: true }, orderBy: { name: "asc" }, distinct: ["name"] }),
-    prisma.citationStyle.findMany({ orderBy: { order: "asc" } }),
-    prisma.projectTypeDef.findMany({ orderBy: { order: "asc" } }),
-  ]);
+  const [institutionNames, departmentNames, citationStyles, projectTypes] =
+    await Promise.all([
+      prisma.institution.findMany({
+        select: { name: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.department.findMany({
+        select: { name: true },
+        orderBy: { name: "asc" },
+        distinct: ["name"],
+      }),
+      prisma.citationStyle.findMany({ orderBy: { order: "asc" } }),
+      prisma.projectTypeDef.findMany({ orderBy: { order: "asc" } }),
+    ]);
 
   const r = detail.research;
   const f = detail.formatting;
@@ -88,7 +117,11 @@ export default async function WizardStepPage({ params }: PageProps<"/projects/[i
       number: s(chapter.number),
       children: detail.sections
         .filter((sec) => sec.parentId === chapter.id)
-        .map((sec) => ({ id: sec.id, title: sec.title, number: s(sec.number) })),
+        .map((sec) => ({
+          id: sec.id,
+          title: sec.title,
+          number: s(sec.number),
+        })),
     }));
 
   /**
@@ -111,220 +144,218 @@ export default async function WizardStepPage({ params }: PageProps<"/projects/[i
     ),
     2: anyOf(detail.projectType, detail.projectTypeCustom),
     3: anyOf(detail.topic, detail.researchArea, detail.description),
-    4: anyOf(r?.researchProblem, r?.aim, r?.researchDesign) || (r?.objectives.length ?? 0) > 0,
-    5: Object.keys((detail.methodology?.data as Record<string, unknown>) ?? {}).length > 0,
+    4:
+      anyOf(r?.researchProblem, r?.aim, r?.researchDesign) ||
+      (r?.objectives.length ?? 0) > 0,
+    5:
+      Object.keys((detail.methodology?.data as Record<string, unknown>) ?? {})
+        .length > 0,
     6: documents.length > 0,
-    7: anyOf(bySource("STUDENT"), bySource("SUPERVISOR"), bySource("DEPARTMENT")),
+    7: anyOf(
+      bySource("STUDENT"),
+      bySource("SUPERVISOR"),
+      bySource("DEPARTMENT"),
+    ),
     8: anyOf(f?.citationStyle, f?.font, f?.lineSpacing, f?.margins),
     9: chapters.length > 0,
   };
 
+  const phase = phaseForStep(step);
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-8 sm:py-10">
+    <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
       <header className="mb-8">
-        <p className="text-sm text-muted-foreground">Project setup</p>
-        <h1 className="mt-1 text-3xl font-semibold">{detail.title}</h1>
+        <p className="label-caps">Project setup</p>
+        <h1 className="mt-2 text-[1.75rem] leading-tight font-semibold tracking-[-0.03em]">
+          {detail.title}
+        </h1>
 
         <div className="mt-6 rounded-xl border border-border bg-card p-4 elevated-1 sm:p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span className="font-medium">
-              Step {step} of {TOTAL_WIZARD_STEPS} — {meta.label}
+            <span className="flex items-baseline gap-2.5 text-sm">
+              <span className="mono text-[0.6875rem] font-medium text-primary">
+                {phase.number}
+              </span>
+              <span className="font-medium">{meta.label}</span>
+              <span className="mono text-[0.6875rem] text-subtle-foreground">
+                STEP {step}/{TOTAL_WIZARD_STEPS}
+              </span>
             </span>
-            <span className="tabular text-sm text-muted-foreground">
+            <span className="mono-figure text-sm text-muted-foreground">
               {detail.completionPct}% complete
             </span>
           </div>
 
-          <div
-            role="progressbar"
-            aria-valuenow={detail.completionPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Project setup progress"
-            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted"
-          >
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-500"
-              style={{ width: `${detail.completionPct}%` }}
-            />
-          </div>
+          <Progress
+            className="mt-3"
+            value={detail.completionPct}
+            label="Project setup progress"
+          />
 
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Every field is optional. Your answers save as you type, so you can leave and come
-            back.
+            Every field is optional. Your answers save as you type, so you can
+            leave and come back.
           </p>
         </div>
-
-        <nav aria-label="Setup steps" className="mt-4">
-          <ol className="flex flex-wrap gap-1.5">
-            {WIZARD_STEPS.map((entry) => {
-              const current = entry.step === step;
-              const filled = stepHasContent[entry.step] ?? false;
-              return (
-                <li key={entry.step}>
-                  <Link
-                    href={`/projects/${id}/wizard/${entry.step}`}
-                    aria-current={current ? "step" : undefined}
-                    title={`Step ${entry.step}: ${entry.label}${filled ? " — has content" : ""}`}
-                    className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors duration-150 ${
-                      current
-                        ? "border-primary bg-muted font-medium text-foreground"
-                        : "border-border text-muted-foreground hover:border-border-strong hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    {filled && !current ? (
-                      <Check className="size-3.5 text-success" aria-hidden="true" />
-                    ) : (
-                      <span className="tabular text-xs">{entry.step}</span>
-                    )}
-                    <span className="hidden sm:inline">{entry.label}</span>
-                    <span className="sr-only">
-                      {filled ? "has content" : "not started"}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
       </header>
 
-      {step === 1 ? (
-        <InstitutionStep
-          projectId={id}
-          institutions={institutionNames.map((i) => i.name)}
-          departments={departmentNames.map((d) => d.name)}
-          initial={{
-            institution: s(detail.institution?.institution),
-            campus: s(detail.institution?.campus),
-            faculty: s(detail.institution?.faculty),
-            department: s(detail.institution?.department),
-            programme: s(detail.institution?.programme),
-            degree: s(detail.institution?.degree),
-            academicLevel: s(detail.institution?.academicLevel),
-          }}
-        />
-      ) : null}
+      <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-10">
+        <WizardRail projectId={id} step={step} hasContent={stepHasContent} />
 
-      {step === 2 ? (
-        <ProjectTypeStep
-          projectId={id}
-          types={projectTypes.map((t) => ({ value: t.key, label: t.label }))}
-          initial={{
-            projectType: s(detail.projectType),
-            projectTypeCustom: s(detail.projectTypeCustom),
-          }}
-        />
-      ) : null}
+        <div className="min-w-0">
+          {step === 1 ? (
+            <InstitutionStep
+              projectId={id}
+              institutions={institutionNames.map((i) => i.name)}
+              departments={departmentNames.map((d) => d.name)}
+              initial={{
+                institution: s(detail.institution?.institution),
+                campus: s(detail.institution?.campus),
+                faculty: s(detail.institution?.faculty),
+                department: s(detail.institution?.department),
+                programme: s(detail.institution?.programme),
+                degree: s(detail.institution?.degree),
+                academicLevel: s(detail.institution?.academicLevel),
+              }}
+            />
+          ) : null}
 
-      {step === 3 ? (
-        <TopicStep
-          projectId={id}
-          initial={{
-            topic: s(detail.topic),
-            topicApproved: detail.topicApproved,
-            researchArea: s(detail.researchArea),
-            keywordsText: detail.keywords.join(", "),
-            description: s(detail.description),
-          }}
-        />
-      ) : null}
+          {step === 2 ? (
+            <ProjectTypeStep
+              projectId={id}
+              types={projectTypes.map((t) => ({
+                value: t.key,
+                label: t.label,
+              }))}
+              initial={{
+                projectType: s(detail.projectType),
+                projectTypeCustom: s(detail.projectTypeCustom),
+              }}
+            />
+          ) : null}
 
-      {step === 4 ? (
-        <ResearchStep
-          projectId={id}
-          initial={{
-            researchProblem: s(r?.researchProblem),
-            aim: s(r?.aim),
-            objectives: r?.objectives ?? [],
-            researchQuestions: r?.researchQuestions ?? [],
-            hypotheses: r?.hypotheses ?? [],
-            studyLocation: s(r?.studyLocation),
-            targetPopulation: s(r?.targetPopulation),
-            samplePopulation: s(r?.samplePopulation),
-            sampleSize: s(r?.sampleSize),
-            samplingTechnique: s(r?.samplingTechnique),
-            researchDesign: s(r?.researchDesign),
-            dataCollectionMethod: s(r?.dataCollectionMethod),
-            researchInstruments: s(r?.researchInstruments),
-            dataAnalysisMethod: s(r?.dataAnalysisMethod),
-            theoreticalFramework: s(r?.theoreticalFramework),
-            conceptualFramework: s(r?.conceptualFramework),
-            limitations: s(r?.limitations),
-            scope: s(r?.scope),
-            keyTerminology: s(r?.keyTerminology),
-          }}
-        />
-      ) : null}
+          {step === 3 ? (
+            <TopicStep
+              projectId={id}
+              initial={{
+                topic: s(detail.topic),
+                topicApproved: detail.topicApproved,
+                researchArea: s(detail.researchArea),
+                keywordsText: detail.keywords.join(", "),
+                description: s(detail.description),
+              }}
+            />
+          ) : null}
 
-      {step === 5 ? (
-        <MethodologyStep
-          projectId={id}
-          methodologyKey={methodologyKeyFor(detail.projectType)}
-          projectTypeChosen={Boolean(detail.projectType)}
-          initial={(detail.methodology?.data as Record<string, string | string[]>) ?? {}}
-        />
-      ) : null}
+          {step === 4 ? (
+            <ResearchStep
+              projectId={id}
+              initial={{
+                researchProblem: s(r?.researchProblem),
+                aim: s(r?.aim),
+                objectives: r?.objectives ?? [],
+                researchQuestions: r?.researchQuestions ?? [],
+                hypotheses: r?.hypotheses ?? [],
+                studyLocation: s(r?.studyLocation),
+                targetPopulation: s(r?.targetPopulation),
+                samplePopulation: s(r?.samplePopulation),
+                sampleSize: s(r?.sampleSize),
+                samplingTechnique: s(r?.samplingTechnique),
+                researchDesign: s(r?.researchDesign),
+                dataCollectionMethod: s(r?.dataCollectionMethod),
+                researchInstruments: s(r?.researchInstruments),
+                dataAnalysisMethod: s(r?.dataAnalysisMethod),
+                theoreticalFramework: s(r?.theoreticalFramework),
+                conceptualFramework: s(r?.conceptualFramework),
+                limitations: s(r?.limitations),
+                scope: s(r?.scope),
+                keyTerminology: s(r?.keyTerminology),
+              }}
+            />
+          ) : null}
 
-      {step === 6 ? <MaterialsStep projectId={id} documents={documents} /> : null}
+          {step === 5 ? (
+            <MethodologyStep
+              projectId={id}
+              methodologyKey={methodologyKeyFor(detail.projectType)}
+              projectTypeChosen={Boolean(detail.projectType)}
+              initial={
+                (detail.methodology?.data as Record<
+                  string,
+                  string | string[]
+                >) ?? {}
+              }
+            />
+          ) : null}
 
-      {step === 7 ? (
-        <InstructionsStep
-          projectId={id}
-          initial={{
-            student: bySource("STUDENT"),
-            supervisor: bySource("SUPERVISOR"),
-            department: bySource("DEPARTMENT"),
-          }}
-        />
-      ) : null}
+          {step === 6 ? (
+            <MaterialsStep projectId={id} documents={documents} />
+          ) : null}
 
-      {step === 8 ? (
-        <FormattingStep
-          projectId={id}
-          citationStyles={citationStyles.map((c) => ({ value: c.key, label: c.label }))}
-          initial={{
-            citationStyle: s(f?.citationStyle),
-            citationStyleCustom: s(f?.citationStyleCustom),
-            font: s(f?.font),
-            fontSize: s(f?.fontSize),
-            lineSpacing: s(f?.lineSpacing),
-            paraSpacing: s(f?.paraSpacing),
-            margins: s(f?.margins),
-            headingStyle: s(f?.headingStyle),
-            pageNumbering: s(f?.pageNumbering),
-            chapterNumbering: s(f?.chapterNumbering),
-            referenceFormat: s(f?.referenceFormat),
-            tableFormat: s(f?.tableFormat),
-            figureFormat: s(f?.figureFormat),
-            customInstructions: s(f?.customInstructions),
-          }}
-        />
-      ) : null}
+          {step === 7 ? (
+            <InstructionsStep
+              projectId={id}
+              initial={{
+                student: bySource("STUDENT"),
+                supervisor: bySource("SUPERVISOR"),
+                department: bySource("DEPARTMENT"),
+              }}
+            />
+          ) : null}
 
-      {step === 9 ? <StructureStep projectId={id} initial={chapters} /> : null}
+          {step === 8 ? (
+            <FormattingStep
+              projectId={id}
+              citationStyles={citationStyles.map((c) => ({
+                value: c.key,
+                label: c.label,
+              }))}
+              initial={{
+                citationStyle: s(f?.citationStyle),
+                citationStyleCustom: s(f?.citationStyleCustom),
+                font: s(f?.font),
+                fontSize: s(f?.fontSize),
+                lineSpacing: s(f?.lineSpacing),
+                paraSpacing: s(f?.paraSpacing),
+                margins: s(f?.margins),
+                headingStyle: s(f?.headingStyle),
+                pageNumbering: s(f?.pageNumbering),
+                chapterNumbering: s(f?.chapterNumbering),
+                referenceFormat: s(f?.referenceFormat),
+                tableFormat: s(f?.tableFormat),
+                figureFormat: s(f?.figureFormat),
+                customInstructions: s(f?.customInstructions),
+              }}
+            />
+          ) : null}
 
-      <nav className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-        {step > 1 ? (
-          <Button asChild variant="outline">
-            <Link href={`/projects/${id}/wizard/${step - 1}`}>Back</Link>
-          </Button>
-        ) : (
-          <span />
-        )}
-        <Button asChild variant="ghost">
-          <Link href="/dashboard">Save and continue later</Link>
-        </Button>
-        {step < TOTAL_WIZARD_STEPS ? (
-          <Button asChild>
-            <Link href={`/projects/${id}/wizard/${step + 1}`}>Next</Link>
-          </Button>
-        ) : (
-          <Button asChild>
-            <Link href={`/projects/${id}/blueprint`}>Review blueprint</Link>
-          </Button>
-        )}
-      </nav>
+          {step === 9 ? (
+            <StructureStep projectId={id} initial={chapters} />
+          ) : null}
+
+          <nav className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+            {step > 1 ? (
+              <Button asChild variant="outline">
+                <Link href={`/projects/${id}/wizard/${step - 1}`}>Back</Link>
+              </Button>
+            ) : (
+              <span />
+            )}
+            <Button asChild variant="ghost">
+              <Link href="/dashboard">Save and continue later</Link>
+            </Button>
+            {step < TOTAL_WIZARD_STEPS ? (
+              <Button asChild>
+                <Link href={`/projects/${id}/wizard/${step + 1}`}>Next</Link>
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href={`/projects/${id}/blueprint`}>Review blueprint</Link>
+              </Button>
+            )}
+          </nav>
+        </div>
+      </div>
     </div>
   );
 }

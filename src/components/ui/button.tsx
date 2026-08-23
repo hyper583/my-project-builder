@@ -5,17 +5,18 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  // `active:translate-y-px` gives a press a physical response. It is the one
-  // piece of motion here that carries meaning rather than decoration.
   [
     // `group` lets a trailing icon respond to the button's own hover.
     "group inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap",
-    "rounded-md text-sm font-medium",
+    "rounded-md text-sm font-medium tracking-[-0.006em]",
     "transition-[background-color,border-color,color,box-shadow,translate] duration-150",
     // The press: the surface dips by a pixel and its shadow settles back,
     // which reads as the control actually moving rather than just recolouring.
     "active:translate-y-px",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    // `focus-glow` supplies the soft ring; the global `:focus-visible` outline
+    // still applies underneath it, so focus survives forced-colours mode where
+    // box-shadow is dropped.
+    "focus-glow",
     "disabled:pointer-events-none disabled:opacity-45 disabled:active:translate-y-0",
   ].join(" "),
   {
@@ -25,7 +26,7 @@ const buttonVariants = cva(
         accent: "press bg-accent text-on-accent elevated-1 hover:bg-accent-hover",
         outline:
           "border border-border bg-card text-foreground hover:border-border-strong hover:bg-muted",
-        subtle: "bg-muted text-foreground hover:bg-surface-sunken",
+        subtle: "bg-muted text-foreground hover:bg-surface-raised",
         ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         destructive: "press bg-destructive text-on-destructive elevated-1 hover:opacity-90",
       },

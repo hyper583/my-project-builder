@@ -58,8 +58,12 @@ export async function signIn(page: Page, user: TestUser): Promise<void> {
  */
 export async function createProject(page: Page, title: string): Promise<string> {
   await page.goto("/dashboard");
-  await page.getByLabel("Working title for your new project").fill(title);
+  // "Create New Project" now opens the form rather than submitting it — the
+  // dashboard's job is to show existing work, so starting a project is one
+  // button until you ask for it.
   await page.getByRole("button", { name: "Create New Project" }).click();
+  await page.getByLabel("Project topic").fill(title);
+  await page.getByRole("button", { name: "Set up my project" }).click();
   await page.waitForURL(/\/projects\/[^/]+\/wizard\/1/, { timeout: 30_000 });
 
   const match = /\/projects\/([^/]+)\/wizard/.exec(page.url());

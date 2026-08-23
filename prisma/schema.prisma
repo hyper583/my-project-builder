@@ -55,6 +55,7 @@ model User {
   usageRecords  UsageRecord[]
   subscription  Subscription?
   auditLogs     AuditLog[]
+  errorLogs     ErrorLog[]
   conversations AIConversation[]
 
   @@index([role])
@@ -574,6 +575,15 @@ model GenerationJob {
   attempts    Int       @default(0)
   maxAttempts Int       @default(3)
 
+  /// The AI provider this job was queued for, e.g. "anthropic" or "mock".
+  /// A worker may only claim a job matching its OWN provider. Without this a
+  /// worker left running from an earlier session — holding whatever
+  /// AI_PROVIDER its process loaded at startup — can claim a job intended for
+  /// a different one and write its output into the project. That happened:
+  /// a stale mock worker claimed a retry and filled a REAL project with
+  /// placeholder text, and the job still reported SUCCEEDED.
+  provider String @default("")
+
   lockedAt  DateTime?
   lockedBy  String?
   heartbeat DateTime?
@@ -843,6 +853,58 @@ model Subscription {
   updatedAt DateTime @updatedAt
 
   @@map("subscription")
+}
+
+/// An unexpected server failure, kept so it can be investigated later.
+///
+/// Only faults are recorded — INTERNAL, AI_FAILED, EXPORT_FAILED. Validation
+/// errors and plan-limit refusals are normal events, and logging them would
+/// bury real incidents under people typing things wrong.
+///
+/// `summary` is sanitised and is what the console lists. `detail` holds the
+/// full message and may contain student prose or uploaded document text, so it
+/// sits behind the same reveal-and-audit gate as project content. Without that
+/// split the table quietly becomes a second copy of student work with no
+/// access control around it.
+model ErrorLog {
+  id String @id @default(cuid())
+
+  /// AppErrorCode — the taxonomy the application already fails with.
+  code    String
+  summary String
+  detail  String?
+  stack   String?
+  /// Where it happened: a route, an action name, or a worker stage.
+  origin  String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  projectId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([code, createdAt])
+  @@map("error_log")
+}
+
+/// A worker announcing that it is alive, and which provider it runs.
+///
+/// This is what separates "the job is stuck" from "no worker is running that
+/// can take it" — two states that look identical from the outside and need
+/// completely different fixes. Rows are never deleted on exit, because a worker
+/// that died is exactly the case worth seeing; a stale `lastSeen` is the signal.
+model WorkerHeartbeat {
+  /// The worker's own id, so a restart replaces its row rather than adding one.
+  id       String @id
+  provider String
+
+  startedAt DateTime @default(now())
+  lastSeen  DateTime @updatedAt
+
+  @@index([provider, lastSeen])
+  @@map("worker_heartbeat")
 }
 
 model AuditLog {

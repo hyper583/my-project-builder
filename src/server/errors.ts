@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 /**
  * Application error taxonomy.
  *
@@ -44,11 +45,25 @@ export class AppError extends Error {
   /** Safe to show to the user. */
   readonly userMessage: string;
 
-  constructor(code: AppErrorCode, options?: { message?: string; cause?: unknown }) {
-    super(options?.message ?? code, { cause: options?.cause });
+  /**
+   * `message` is internal — it goes to logs and never to the client, so it is
+   * safe to put a project id or a provider name in it.
+   *
+   * `userMessage` is the opt-in for text that SHOULD be shown. It exists
+   * because the two are genuinely different jobs, and defaulting to the
+   * friendly table is what stops an unexamined `message` leaking. A policy
+   * refusal an admin needs to read — "that is the only active admin" — is
+   * useless if it renders as "check your details", and seventeen call sites
+   * were passing a message that never reached anyone.
+   */
+  constructor(
+    code: AppErrorCode,
+    options?: { message?: string; userMessage?: string; cause?: unknown },
+  ) {
+    super(options?.message ?? options?.userMessage ?? code, { cause: options?.cause });
     this.name = "AppError";
     this.code = code;
-    this.userMessage = FRIENDLY[code];
+    this.userMessage = options?.userMessage ?? FRIENDLY[code];
   }
 }
 
@@ -64,6 +79,21 @@ export function toUserMessage(error: unknown): { code: AppErrorCode; message: st
   if (isAppError(error)) {
     return { code: error.code, message: error.userMessage };
   }
+
+  /*
+   * A schema failure is the user's input being wrong, not the server breaking.
+   * Without this it fell through to INTERNAL and reported "something went wrong
+   * on our end" — which is both untrue and unactionable, and it silently
+   * discarded every message authored in a schema.
+   *
+   * Zod's messages describe the schema rather than the data, and the ones that
+   * matter here are written in this codebase, so they are safe to show.
+   */
+  if (error instanceof ZodError) {
+    const first = error.issues[0];
+    return { code: "VALIDATION", message: first?.message ?? FRIENDLY.VALIDATION };
+  }
+
   console.error("[unhandled]", error);
   return { code: "INTERNAL", message: FRIENDLY.INTERNAL };
 }
