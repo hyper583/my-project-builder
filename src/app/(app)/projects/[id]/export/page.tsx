@@ -20,6 +20,9 @@ const DENIAL: Record<string, string> = {
   DEMO_REQUIRES_PAID_PLAN:
     "Exporting a sample project is part of the paid plan. Upgrade to download it, " +
     "or create your own project and export that.",
+  REAL_EXPORT_NOT_IN_PLAN:
+    "Your project is written and yours to read here in full. Downloading it as a " +
+    "Word or PDF document is part of the paid plan.",
   NOT_OWNER: "This project belongs to someone else.",
 };
 

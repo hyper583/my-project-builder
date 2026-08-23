@@ -38,7 +38,9 @@ const DENIAL_MESSAGES: Record<string, string> = {
   DEMO_REQUIRES_PAID_PLAN:
     "Exporting a sample project is part of the paid plan. Upgrade to download it, or create " +
     "your own project and export that.",
-  REAL_EXPORT_NOT_IN_PLAN: "Exporting is not included in your current plan.",
+  REAL_EXPORT_NOT_IN_PLAN:
+    "Your project is written and yours to read in full. Downloading it as a Word or PDF " +
+    "document is part of the paid plan.",
 };
 
 /** A filename a student will recognise in their downloads folder. */
