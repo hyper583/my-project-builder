@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { renderPdf } from "@/server/services/export/pdf";
+import { computeBudget, distribute } from "@/server/services/generation/budget";
+import { FIVE_CHAPTER_TEMPLATE } from "@/lib/structures";
 import {
   DEFAULT_FORMATTING,
   DEMO_DISCLAIMER,
@@ -198,5 +200,70 @@ describe("renderPdf", () => {
 
     const text = await pdfText(result.bytes);
     expect(text).toContain("Section 5.5");
+  });
+});
+
+/**
+ * The page estimate, checked against the renderer that decides the truth.
+ *
+ * `budget.ts` converts a page target into a word budget, and nothing verified
+ * that the words it asked for actually filled the pages it promised. They did
+ * not: the conversion assumed an unbroken column of text and ran about 40%
+ * optimistic, so the first real project — asked for 60 to 80 pages — rendered
+ * to 99. This is the check that would have caught it.
+ */
+describe("the page estimate against the real renderer", () => {
+  const WORDS = "Financial inclusion has emerged as a central concern of development economics".split(" ");
+  const prose = (words: number) =>
+    "<p>" +
+    Array.from({ length: words }, (_, i) => WORDS[i % WORDS.length]).join(" ") +
+    ".</p>";
+
+  it("renders a document inside the page range it was budgeted for", async () => {
+    const formatting = DEFAULT_FORMATTING;
+    const flat = FIVE_CHAPTER_TEMPLATE.flatMap((chapter) =>
+      chapter.children.map((child) => ({ title: child.title, chapterTitle: chapter.title })),
+    );
+
+    const budget = computeBudget({ minPages: 60, maxPages: 80 }, formatting, flat.length);
+    expect(budget).not.toBeNull();
+    const perSection = distribute(budget!, flat);
+
+    let n = 0;
+    const chapters = FIVE_CHAPTER_TEMPLATE.map((chapter) => ({
+      number: chapter.number,
+      title: chapter.title,
+      blocks: [],
+      sections: chapter.children.map((child) => ({
+        number: child.number,
+        title: child.title,
+        // Every real project carries these, and they are not free: each renders
+        // as a padded block several lines tall. A test document of pure prose
+        // packs tighter than anything a student will ever export.
+        blocks: parseSectionHtml(
+          prose(perSection[n++]!) +
+            "<p>Respondents reported [STUDENT DATA REQUIRED: mean value] on average.</p>".repeat(2),
+        ),
+      })),
+    }));
+
+    const result = await renderPdf(baseDocument({ chapters, formatting }));
+
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const doc = await pdfjs.getDocument({
+      data: result.bytes,
+      useSystemFonts: false,
+      disableFontFace: true,
+      isEvalSupported: false,
+    }).promise;
+    const rendered = doc.numPages;
+    await doc.destroy();
+
+    // The requested range, with no slack. The budget accounts for front
+    // matter, contents, headings, chapter breaks and the reference list, so
+    // there is nothing left for the bounds to absorb. Before that accounting
+    // this document rendered to 98 pages.
+    expect(rendered).toBeGreaterThanOrEqual(60);
+    expect(rendered).toBeLessThanOrEqual(80);
   });
 });
