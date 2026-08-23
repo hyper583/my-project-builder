@@ -55,6 +55,26 @@ export async function enqueueGeneration(projectId: string): Promise<string> {
     select: { id: true, number: true, title: true },
   });
 
+  /*
+   * A project with no chapters has nothing to write.
+   *
+   * Without this the run is quietly pointless: `buildStages([])` yields only
+   * the prologue and epilogue, every one of those stages succeeds, the project
+   * is marked READY, and not a word exists. The student opens a finished-looking
+   * project and finds it empty — having spent one of the generation runs their
+   * plan allows.
+   *
+   * Refusing here is the honest outcome, and it names the step that fixes it.
+   */
+  if (chapters.length === 0) {
+    throw new AppError("VALIDATION", {
+      message: `Project ${projectId} has no chapters to generate`,
+      userMessage:
+        "This project has no chapters yet, so there is nothing to write. " +
+        "Choose a chapter structure in setup first.",
+    });
+  }
+
   const stages = buildStages(chapters);
 
   const job = await prisma.generationJob.create({

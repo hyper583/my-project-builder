@@ -241,6 +241,9 @@ export function ProjectTypePanel({ types }: { types: readonly PresetRow[] }) {
                     size="sm"
                     variant="ghost"
                     disabled={busy !== null}
+                    // Unconditional: the button is an icon, so `title` alone
+                    // left the unused ones announcing as "button".
+                    aria-label={`Delete ${type.label}`}
                     title={
                       type.used > 0
                         ? `${type.used} projects use this. Removal will be refused.`
@@ -331,6 +334,7 @@ export function CitationStylePanel({ styles }: { styles: readonly PresetRow[] })
                 size="sm"
                 variant="ghost"
                 disabled={busy !== null}
+                aria-label={`Delete ${style.label}`}
                 title={
                   style.used > 0
                     ? `${style.used} projects use this. Removal will be refused.`
@@ -422,6 +426,7 @@ export function InstitutionPanel({ institutions }: { institutions: readonly Inst
                   size="sm"
                   variant="ghost"
                   disabled={busy !== null}
+                  aria-label={`Delete ${institution.name}`}
                   title={
                     institution.used > 0
                       ? `${institution.used} projects name this. Removal will be refused.`
