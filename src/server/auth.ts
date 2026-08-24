@@ -102,6 +102,25 @@ export const auth = betterAuth({
           google: {
             clientId: env.GOOGLE_CLIENT_ID!,
             clientSecret: env.GOOGLE_CLIENT_SECRET!,
+            /*
+             * Always show Google's account chooser.
+             *
+             * Without this, Google silently uses whichever account the browser
+             * is already signed in to and never offers a choice. On the
+             * sign-up page that is the wrong behaviour outright: someone who
+             * pressed "Sign up with Google" to register a DIFFERENT address is
+             * signed straight back into their existing one and bounced to the
+             * sign-in page being told the account already exists. There is no
+             * way, from inside the product, to reach any other Google account
+             * — the only workaround is signing out of Google in the browser.
+             *
+             * `select_account` also makes "Use another account" available, so
+             * a shared machine is not stuck with whoever used it last.
+             *
+             * The cost is one extra click for a returning user with a single
+             * account. That is worth paying to make a whole flow reachable.
+             */
+            prompt: "select_account",
           },
         },
       }
