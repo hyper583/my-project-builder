@@ -64,7 +64,19 @@ const serverEnvSchema = z.object({
   SUPABASE_STORAGE_BUCKET: z.string().default("project-files"),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(25),
 
-  EMAIL_DRIVER: z.enum(["console", "smtp"]).default("console"),
+  EMAIL_DRIVER: z.enum(["console", "resend", "smtp"]).default("console"),
+
+  /**
+   * Resend. Required only when EMAIL_DRIVER=resend, which the driver checks
+   * itself so a local installation is not asked for credentials it will never
+   * use.
+   *
+   * `EMAIL_FROM` must be an address at a domain verified in Resend — they will
+   * not send from an unverified one. It accepts a friendly form,
+   * `My Project Builder <hello@example.com>`.
+   */
+  RESEND_API_KEY: z.string().optional().or(z.literal("")),
+  EMAIL_FROM: z.string().optional().or(z.literal("")),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
