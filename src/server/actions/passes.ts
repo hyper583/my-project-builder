@@ -8,6 +8,9 @@ import { requireAdmin, requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
 import { AppError, fail, ok, type ActionResult } from "@/server/errors";
 import { claimPass, unclaimedPassCount } from "@/server/services/entitlements";
+import { PASS_CURRENCY, PASS_PRICE_KOBO } from "@/config/plans";
+import { env, isPaystackConfigured } from "@/lib/env";
+import { initialiseTransaction } from "@/server/services/payments/paystack";
 
 /**
  * Buying, and spending, a project pass.
@@ -21,6 +24,58 @@ import { claimPass, unclaimedPassCount } from "@/server/services/entitlements";
  * When Paystack lands, its webhook creates the pass with `provider` and
  * `externalId` set and nothing else here changes.
  */
+
+/**
+ * Opens a Paystack transaction and returns where to send the student.
+ *
+ * The amount comes from `PASS_PRICE_KOBO` on the server and is never accepted
+ * from the browser — a client-supplied price is a price the client can change.
+ * The project is carried in metadata so the webhook can spend the pass on it
+ * without asking the student to press a second button after paying.
+ *
+ * Nothing is granted here. This only opens a transaction; the pass is created
+ * by the webhook, after Paystack has been asked what actually happened. A
+ * student who closes the tab mid-payment still gets their pass, and one who
+ * reaches the callback URL without paying does not.
+ */
+export async function startPassCheckout(input: unknown): Promise<ActionResult<{ url: string }>> {
+  try {
+    const { projectId } = z
+      .object({ projectId: z.string().min(1).optional() })
+      .parse(input ?? {});
+
+    const user = await requireUser();
+
+    if (!isPaystackConfigured) {
+      throw new AppError("INTERNAL", {
+        message: "Paystack is not configured",
+        userMessage: "Payments are not available yet. Please try again later.",
+      });
+    }
+
+    // Ownership, before the project id is written into payment metadata.
+    const target = projectId ? await assertProjectOwnership(projectId, user) : null;
+
+    // Back to where they started. Buying from a project returns to that
+    // project's download page; buying a spare pass returns to settings, where
+    // the count of them is shown.
+    const callbackUrl = target
+      ? `${env.BETTER_AUTH_URL}/projects/${target}/export`
+      : `${env.BETTER_AUTH_URL}/settings`;
+
+    const { authorizationUrl } = await initialiseTransaction({
+      email: user.email,
+      amountKobo: PASS_PRICE_KOBO,
+      currency: PASS_CURRENCY,
+      callbackUrl,
+      metadata: { userId: user.id, projectId: target },
+    });
+
+    return ok({ url: authorizationUrl });
+  } catch (error) {
+    return fail(error);
+  }
+}
 
 /**
  * Grants an unclaimed pass.

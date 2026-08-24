@@ -47,6 +47,25 @@ export const EDIT_COST_USD = 0.022;
 export const PASS_CEILING_USD = 5.6;
 
 /**
+ * The price of one project pass, in kobo.
+ *
+ * Minor units because that is what Paystack transacts in, and because storing
+ * money as a float is how rounding errors become refunds. ₦25,000.
+ *
+ * Settled after measuring what a project actually costs to serve: about $0.72
+ * of generation plus the editing tail, against roughly $18 of revenue.
+ */
+export const PASS_PRICE_KOBO = 2_500_000;
+
+/**
+ * The currency the price above is denominated in.
+ *
+ * Checked against what Paystack reports before a pass is granted. A transaction
+ * that paid 2,500,000 of something else is not ₦25,000.
+ */
+export const PASS_CURRENCY = "NGN";
+
+/**
  * What one project pass includes.
  *
  * Three runs covers writing the project and changing direction twice; 150

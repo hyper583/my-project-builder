@@ -33,6 +33,13 @@ const serverEnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional().or(z.literal("")),
   GOOGLE_CLIENT_SECRET: z.string().optional().or(z.literal("")),
 
+  /**
+   * Paystack. The secret key both authenticates API calls and signs webhooks,
+   * so it is the one value that must never reach the browser — nothing here is
+   * prefixed `NEXT_PUBLIC_`.
+   */
+  PAYSTACK_SECRET_KEY: z.string().optional().or(z.literal("")),
+
   AI_PROVIDER: z.enum(["mock", "anthropic"]).default("mock"),
   ANTHROPIC_API_KEY: z.string().optional().or(z.literal("")),
   AI_MODEL_GENERATION: z.string().default("claude-opus-5"),
@@ -79,3 +86,13 @@ export const isAiConfigured: boolean =
  */
 export const isGoogleAuthConfigured: boolean =
   Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET);
+
+/**
+ * Whether payments can actually be taken.
+ *
+ * Checkout is not offered without it. A "Buy a pass" button that fails on the
+ * next screen is worse than no button, and an unconfigured webhook that
+ * accepted requests would be an endpoint granting passes with nothing to check
+ * them against.
+ */
+export const isPaystackConfigured: boolean = Boolean(env.PAYSTACK_SECRET_KEY);

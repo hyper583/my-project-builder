@@ -48,4 +48,14 @@ process.env.AI_PROVIDER = "mock";
 process.env.ANTHROPIC_API_KEY = "";
 
 process.env.BETTER_AUTH_SECRET ??= "test-secret-value-at-least-16-chars";
+
+/*
+ * A fixed Paystack key for the suite.
+ *
+ * Overwritten rather than defaulted, for the same reason AI_PROVIDER is: a
+ * developer's real secret key left in the environment would sign test
+ * assertions with a live credential, and the webhook tests would be verifying
+ * against production rather than against a known value.
+ */
+process.env.PAYSTACK_SECRET_KEY = "sk_test_not_a_real_key_for_the_suite_only";
 process.env.BETTER_AUTH_URL ??= "http://localhost:3000";
