@@ -10,7 +10,13 @@
  *   Student, FREE  + DEMO project -> blocked (upgrade prompt)
  *   Student, PAID  + DEMO project -> allowed, disclaimer REQUIRED
  *   Admin          + DEMO project -> allowed, clean (audit-logged by the caller)
- *   Any owner      + REAL project -> allowed per plan, no disclaimer
+ *   Owner, no pass + REAL project -> blocked (the paywall)
+ *   Owner, pass    + REAL project -> allowed, no disclaimer
+ *   Admin          + REAL project -> allowed, no disclaimer
+ *
+ * Deliberately pure and synchronous. Whether the project carries a pass is
+ * looked up by the caller and passed in, so this stays a function of its
+ * arguments and the matrix above can be tested without a database.
  */
 
 import { entitlementsFor, type PlanTier } from "@/config/plans";
@@ -28,6 +34,14 @@ export interface ExportTarget {
   readonly id: string;
   readonly kind: ProjectKind;
   readonly ownerId: string;
+  /**
+   * Whether a project pass has been spent on this project.
+   *
+   * The entitlement to download belongs to the PROJECT, not the account. It
+   * used to be `planTier`, which was permanent — one payment released every
+   * project the account would ever create, for as long as it existed.
+   */
+  readonly hasPass: boolean;
 }
 
 export type ExportDenialReason =
@@ -69,7 +83,7 @@ export function resolveExportPolicy(actor: ExportActor, target: ExportTarget): E
     return { allowed: true, disclaimer: true, requiresAudit: false };
   }
 
-  if (!plan.canExportReal) {
+  if (!target.hasPass) {
     return { allowed: false, reason: "REAL_EXPORT_NOT_IN_PLAN" };
   }
 

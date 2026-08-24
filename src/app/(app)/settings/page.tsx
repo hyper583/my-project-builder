@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Check, Minus } from "lucide-react";
 
 import { AppearanceSetting } from "@/components/settings/appearance-setting";
-import { entitlementsFor } from "@/config/plans";
+import { entitlementsFor, FREE_PROJECT_ALLOWANCE, PASS_ALLOWANCE } from "@/config/plans";
 import { requireSession } from "@/server/dal/session";
 import { prisma } from "@/server/db";
+import { unclaimedPassCount } from "@/server/services/entitlements";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -20,7 +21,7 @@ export default async function SettingsPage() {
 
   // Real counts, read from the same tables the limits are enforced against —
   // so what this page shows and what the server allows cannot drift apart.
-  const [projectCount, generationCount, editCount] = await Promise.all([
+  const [projectCount, generationCount, editCount, passesAvailable, passesClaimed] = await Promise.all([
     prisma.project.count({ where: { userId: user.id, deletedAt: null, status: { not: "ARCHIVED" } } }),
     prisma.generationJob.count({
       where: { project: { userId: user.id }, createdAt: { gte: since } },
@@ -28,6 +29,8 @@ export default async function SettingsPage() {
     prisma.usageRecord.count({
       where: { userId: user.id, kind: "AI_EDIT", createdAt: { gte: since } },
     }),
+    unclaimedPassCount(user.id),
+    prisma.projectPass.count({ where: { userId: user.id, claimedAt: { not: null } } }),
   ]);
 
   return (
@@ -56,21 +59,47 @@ export default async function SettingsPage() {
         </Section>
 
         <Section
-          title={`Plan — ${plan.label}`}
-          description="Usage is counted over a rolling 30-day window."
+          title="Project passes"
+          description="A pass is spent on one project and does not expire. Its allowance belongs to that project."
+        >
+          <dl className="divide-y divide-border">
+            <Row
+              label="Passes available"
+              value={passesAvailable === 0 ? "None" : String(passesAvailable)}
+            />
+            <Row label="Projects with a pass" value={String(passesClaimed)} />
+          </dl>
+
+          <p className="mt-5 border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
+            Each pass includes {PASS_ALLOWANCE.maxGenerations} generation runs and{" "}
+            {PASS_ALLOWANCE.maxEdits} AI editing actions for its project, and lets you download
+            the finished document.
+          </p>
+        </Section>
+
+        <Section
+          title={`Free allowance — ${plan.label}`}
+          description="What you can do without a pass. Counted over a rolling 30-day window."
         >
           <div className="space-y-4">
             <Meter label="Active projects" used={projectCount} limit={plan.maxProjects} />
             <Meter
               label="Generation runs"
               used={generationCount}
-              limit={plan.maxGenerationsPerMonth}
+              limit={FREE_PROJECT_ALLOWANCE.maxGenerations}
             />
-            <Meter label="AI editing actions" used={editCount} limit={plan.maxEditsPerMonth} />
+            <Meter
+              label="AI editing actions"
+              used={editCount}
+              limit={FREE_PROJECT_ALLOWANCE.maxEdits}
+            />
           </div>
 
           <ul className="mt-6 space-y-2 border-t border-border pt-5">
-            <Entitlement allowed={plan.canExportReal} label="Export your own projects" />
+            <Entitlement
+              allowed={false}
+              label="Download your own projects — included with a pass"
+            />
             <Entitlement
               allowed={plan.canExportDemo}
               label="Export sample projects (always watermarked)"

@@ -54,6 +54,7 @@ model User {
   exports       Export[]
   usageRecords  UsageRecord[]
   subscription  Subscription?
+  passes        ProjectPass[]
   auditLogs     AuditLog[]
   errorLogs     ErrorLog[]
   conversations AIConversation[]
@@ -187,6 +188,7 @@ model Project {
   exports        Export[]
   issues         ConsistencyIssue[]
   generation     ProjectGenerationSettings?
+  pass           ProjectPass?
 
   @@index([userId, deletedAt])
   @@index([userId, status])
@@ -456,7 +458,7 @@ model DocumentChunk {
 
   order    Int
   text     String
-  tokenEst Int @default(0)
+  tokenEst Int    @default(0)
 
   createdAt DateTime @default(now())
 
@@ -853,6 +855,53 @@ model Subscription {
   updatedAt DateTime @updatedAt
 
   @@map("subscription")
+}
+
+/// What a student bought, and the project they spent it on.
+///
+/// The product is priced per project, so this is a pass rather than a
+/// subscription: it is CONSUMED by a project rather than running out on a
+/// clock. That distinction is the whole point. Entitlements used to come from
+/// `User.planTier` alone, which had no end at all — one payment granted a
+/// monthly-renewing allowance forever, and no monthly figure makes that safe.
+/// A clock would have been the obvious fix and the wrong one: students take
+/// months over a final-year project, and an expiry date punishes exactly the
+/// ones who are working.
+///
+/// `claimedAt` rather than `projectId` is the authoritative "spent" marker.
+/// Deleting a project releases `projectId` but must not hand the pass back,
+/// or generate-export-delete would be an unlimited-use loop.
+model ProjectPass {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The project this was spent on. Null until claimed, and again if that
+  /// project is ever hard-deleted — see `claimedAt`.
+  /// Unique: a project carries at most one pass.
+  projectId String?  @unique
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  /// Recorded at purchase, in minor units, so a later price change is never
+  /// retroactive and a refund knows what was actually taken.
+  amountMinor Int    @default(0)
+  currency    String @default("NGN")
+
+  /// Payment provenance. Null for a pass an admin granted, which is how every
+  /// pass is created until a payment provider is wired up.
+  provider   String?
+  externalId String? @unique
+
+  /// Who granted it, when there was no payment. Audited separately too.
+  grantedByUserId String?
+  note            String?
+
+  createdAt DateTime  @default(now())
+  claimedAt DateTime?
+
+  @@index([userId])
+  @@index([userId, claimedAt])
+  @@map("project_pass")
 }
 
 /// An unexpected server failure, kept so it can be investigated later.

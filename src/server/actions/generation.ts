@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { LIMITS } from "@/config/limits";
-import { entitlementsFor } from "@/config/plans";
 import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
+import { assertCanGenerate } from "@/server/services/entitlements";
 import { AppError, fail, ok, type ActionResult } from "@/server/errors";
 import { aiConfigured } from "@/server/services/ai";
 import { enqueueGeneration } from "@/server/services/jobs/queue";
@@ -51,20 +51,10 @@ export async function startGeneration(input: unknown): Promise<ActionResult<{ jo
       });
     }
 
-    const plan = entitlementsFor(user.planTier);
-    // Count generation RUNS, not usage records — the pipeline writes one usage
-    // record per section, so counting those would cap a student at one section
-    // rather than one project.
-    const used = await prisma.generationJob.count({
-      where: {
-        project: { userId: user.id },
-        createdAt: { gte: new Date(Date.now() - 30 * 24 * 3600_000) },
-        status: { in: ["QUEUED", "RUNNING", "SUCCEEDED"] },
-      },
-    });
-    if (plan.maxGenerationsPerMonth > 0 && used >= plan.maxGenerationsPerMonth) {
-      throw new AppError("PLAN_LIMIT", { message: "Monthly generation limit reached" });
-    }
+    // Per project, not per account. What the student bought is a pass spent on
+    // one project, so the allowance belongs to the project rather than renewing
+    // on their account every month.
+    await assertCanGenerate(user, id);
 
     const jobId = await enqueueGeneration(id);
 

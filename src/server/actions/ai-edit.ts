@@ -3,11 +3,11 @@
 import { z } from "zod";
 
 import { LIMITS } from "@/config/limits";
-import { entitlementsFor } from "@/config/plans";
 import { findAiAction } from "@/lib/ai-actions";
 import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
+import { assertCanEdit } from "@/server/services/entitlements";
 import { AppError, fail, ok, type ActionResult } from "@/server/errors";
 import { SYSTEM_PROMPTS, ai, aiConfigured } from "@/server/services/ai";
 import { buildProjectMemory } from "@/server/services/memory";
@@ -44,17 +44,9 @@ export async function runAiAction(input: unknown): Promise<
 
     await checkRateLimit(`ai-edit:${user.id}`, ...LIMITS.rateLimit.aiAction);
 
-    const plan = entitlementsFor(user.planTier);
-    const used = await prisma.usageRecord.count({
-      where: {
-        userId: user.id,
-        kind: "AI_EDIT",
-        createdAt: { gte: new Date(Date.now() - 30 * 24 * 3600_000) },
-      },
-    });
-    if (plan.maxEditsPerMonth > 0 && used >= plan.maxEditsPerMonth) {
-      throw new AppError("PLAN_LIMIT", { message: "Monthly AI editing limit reached" });
-    }
+    // Counted against this project's pass, or against the free monthly
+    // allowance when it has none.
+    await assertCanEdit(user, id);
 
     const section = await prisma.projectSection.findFirst({
       where: { id: sectionId, projectId: id },

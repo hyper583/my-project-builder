@@ -4,7 +4,7 @@ import { CircleCheck, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
 
 import { CountUp } from "@/components/motion/count-up";
 import { ProjectList, type ProjectCardData } from "@/components/dashboard/project-list";
-import { entitlementsFor } from "@/config/plans";
+import { entitlementsFor, FREE_PROJECT_ALLOWANCE } from "@/config/plans";
 import { listProjects } from "@/server/dal/projects";
 import { requireSession } from "@/server/dal/session";
 import { prisma } from "@/server/db";
@@ -100,7 +100,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           icon={Sparkles}
           label="Generation runs"
           value={generationCount}
-          detail={`of ${plan.maxGenerationsPerMonth} in 30 days`}
+          detail={`of ${FREE_PROJECT_ALLOWANCE.maxGenerations} free in 30 days`}
         />
       </dl>
 
