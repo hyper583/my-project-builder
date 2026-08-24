@@ -47,6 +47,21 @@ const serverEnvSchema = z.object({
 
   STORAGE_DRIVER: z.enum(["local", "supabase", "s3"]).default("local"),
   STORAGE_LOCAL_DIR: z.string().default("./.storage"),
+
+  /**
+   * Supabase Storage. Required only when STORAGE_DRIVER=supabase, which the
+   * driver checks itself so that a local installation is not asked for cloud
+   * credentials it will never use.
+   *
+   * The service-role key bypasses row-level security, which is exactly why it
+   * is server-only and has no `NEXT_PUBLIC_` twin. Every request that reaches
+   * this driver has already been authorised against the project's owner; the
+   * bucket is private and holds nothing that should ever be reachable by a key
+   * a browser could see.
+   */
+  SUPABASE_URL: z.string().url().optional().or(z.literal("")),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional().or(z.literal("")),
+  SUPABASE_STORAGE_BUCKET: z.string().default("project-files"),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(25),
 
   EMAIL_DRIVER: z.enum(["console", "smtp"]).default("console"),
