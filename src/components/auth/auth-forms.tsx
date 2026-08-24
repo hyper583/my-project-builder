@@ -90,7 +90,59 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-export function RegisterForm() {
+/**
+ * "Continue with Google", for both forms.
+ *
+ * One component rather than two copies: Google is the same act whether the
+ * account exists or not — the provider creates it if it does not — so a "sign
+ * up with Google" that behaved differently from "sign in with Google" would be
+ * two names for one flow, and one of them would eventually drift.
+ *
+ * It was on the sign-in form only, which meant a student who wanted to start
+ * with Google had to first guess that the sign-in page would take them.
+ */
+function GoogleButton({
+  pending,
+  onStart,
+  onFailure,
+}: {
+  pending: boolean;
+  onStart: () => void;
+  onFailure: (message: string) => void;
+}) {
+  async function go() {
+    onStart();
+    const { error } = await signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
+      // Where Google sends them back to when the link is refused. Without it
+      // they land on Better Auth's own unstyled error page, which says
+      // "unable_to_link_account" and offers no way forward.
+      errorCallbackURL: "/login",
+    });
+    // On success the browser is redirected to Google, so reaching this line
+    // with no error means the redirect is in flight — leave the button busy.
+    if (error) {
+      onFailure("Google sign-in could not be started. Please try again, or use your password.");
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs text-subtle-foreground">or</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <Button type="button" variant="outline" size="lg" className="w-full" onClick={go} disabled={pending}>
+        <GoogleMark />
+        Continue with Google
+      </Button>
+    </>
+  );
+}
+
+export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -136,6 +188,21 @@ export function RegisterForm() {
         {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
         {pending ? "Creating your account…" : "Create account"}
       </Button>
+
+      {googleEnabled ? (
+        <GoogleButton
+          pending={pending}
+          onStart={() => {
+            setError(null);
+            setPending(true);
+          }}
+          onFailure={(message) => {
+            setPending(false);
+            setError(message);
+          }}
+        />
+      ) : null}
+
       <p className="text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link href="/login" className="font-medium text-primary underline underline-offset-4">
@@ -161,25 +228,6 @@ export function LoginForm({
   // tomorrow is the annoyance; the box exists so someone on a shared or
   // library machine can opt out of it.
   const [remember, setRemember] = useState(true);
-
-  async function onGoogle() {
-    setError(null);
-    setPending(true);
-    const { error: authError } = await signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-      // Where Google sends them back to when the link is refused. Without it
-      // they land on Better Auth's own unstyled error page, which says
-      // "unable_to_link_account" and offers no way forward.
-      errorCallbackURL: "/login",
-    });
-    // On success the browser is redirected to Google, so reaching this line
-    // with no error means the redirect is in flight — leave the button busy.
-    if (authError) {
-      setPending(false);
-      setError("Google sign-in could not be started. Please try again, or use your password.");
-    }
-  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -234,27 +282,18 @@ export function LoginForm({
         {pending ? "Signing in…" : "Sign in"}
       </Button>
 
-      {/* Rendered only where the provider is actually configured, so the page
-          never offers a route that dead-ends at Google's error screen. */}
       {googleEnabled ? (
-        <>
-          <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs text-subtle-foreground">or</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={onGoogle}
-            disabled={pending}
-          >
-            <GoogleMark />
-            Continue with Google
-          </Button>
-        </>
+        <GoogleButton
+          pending={pending}
+          onStart={() => {
+            setError(null);
+            setPending(true);
+          }}
+          onFailure={(message) => {
+            setPending(false);
+            setError(message);
+          }}
+        />
       ) : null}
 
       <div className="flex flex-wrap justify-between gap-2 text-sm text-muted-foreground">

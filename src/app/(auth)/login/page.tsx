@@ -23,8 +23,8 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const OAUTH_ERRORS: Record<string, string> = {
     unable_to_link_account:
       "There is already an account with this email address and a password. " +
-      "Sign in with that password once and confirm your email, and Google will " +
-      "work from then on.",
+      "Sign in with that password, then confirm your email from Settings — " +
+      "Google will work from then on.",
     email_not_verified:
       "Google has not confirmed that email address, so it cannot be used to sign in.",
     account_already_linked_to_different_user:

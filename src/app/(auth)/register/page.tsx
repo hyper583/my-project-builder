@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { RegisterForm } from "@/components/auth/auth-forms";
+import { isGoogleAuthConfigured } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Create your account" };
 
@@ -11,7 +12,7 @@ export default function RegisterPage() {
       <p className="mt-2 mb-7 leading-relaxed text-muted-foreground">
         Your projects are private to you and saved as you work.
       </p>
-      <RegisterForm />
+      <RegisterForm googleEnabled={isGoogleAuthConfigured} />
     </>
   );
 }
