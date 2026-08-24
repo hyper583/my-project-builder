@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Check, Minus } from "lucide-react";
 
 import { AppearanceSetting } from "@/components/settings/appearance-setting";
+import { EmailConfirmation } from "@/components/settings/email-confirmation";
 import { entitlementsFor, FREE_PROJECT_ALLOWANCE, PASS_ALLOWANCE } from "@/config/plans";
 import { requireSession } from "@/server/dal/session";
 import { prisma } from "@/server/db";
@@ -16,6 +17,12 @@ function windowStart(): Date {
 
 export default async function SettingsPage() {
   const user = await requireSession();
+  // Read straight from the row: the session does not carry it, and this is the
+  // one place that has to be right about it.
+  const { emailVerified } = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: { emailVerified: true },
+  });
   const plan = entitlementsFor(user.planTier);
   const since = windowStart();
 
@@ -49,6 +56,10 @@ export default async function SettingsPage() {
             <Row label="Email" value={user.email} />
             <Row label="Role" value={user.role === "ADMIN" ? "Administrator" : "Student"} />
           </dl>
+
+          <div className="mt-5 border-t border-border pt-5">
+            <EmailConfirmation email={user.email} verified={emailVerified} />
+          </div>
         </Section>
 
         <Section

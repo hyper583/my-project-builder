@@ -156,3 +156,35 @@ if (removed.length === 0) {
   console.log(`\nRemoved: ${removed.join(", ")}`);
   console.log("\nNow start it in a terminal that stays open:\n  npx prisma dev --name mpb\n");
 }
+
+
+/*
+ * When clearing locks is not enough.
+ *
+ * Twice now the server has reached a state no lock removal fixes: it prints
+ * "Starting prisma dev server", binds only the SHADOW port, and never
+ * completes a handshake — or fails outright with `ErrnoError { errno: 20 }`,
+ * which is ENOTDIR, a file sitting where it expects a directory. Both mean the
+ * server's own state directory is damaged rather than merely locked.
+ *
+ * Recreating it is cheap and safe, because this database holds nothing worth
+ * keeping — every test run truncates it. Full reset:
+ *
+ *   npx prisma dev stop mpb
+ *   # then, with nothing listening on 51213-51216:
+ *   rm -rf "$LOCALAPPDATA/prisma-dev-nodejs/Data/mpb"
+ *   rm -rf "$LOCALAPPDATA/prisma-dev-nodejs/Data/durable-streams/mpb"
+ *   npx prisma dev --name mpb
+ *
+ * Then rebuild what the suite needs. The database inside the server has to be
+ * created before migrations have anywhere to go, and `prisma.config.ts` reads
+ * DIRECT_URL — overriding only DATABASE_URL sends the migration to Supabase,
+ * which has happened:
+ *
+ *   CREATE DATABASE mpb_test            -- via any pg client on port 51214
+ *   DIRECT_URL="$TEST_DATABASE_URL" DATABASE_URL="$TEST_DATABASE_URL" npx prisma migrate deploy
+ *   DIRECT_URL="$TEST_DATABASE_URL" DATABASE_URL="$TEST_DATABASE_URL" npx tsx prisma/seed/index.ts
+ *
+ * After a clean recreate the server starts in about eight seconds. If it is
+ * still taking minutes, it is still damaged.
+ */
