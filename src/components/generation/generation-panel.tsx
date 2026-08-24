@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, CircleDashed, Loader2, Sparkles } from "lucide-react";
 
+import { BuyPassButton } from "@/components/payments/buy-pass-button";
 import { Button } from "@/components/ui/button";
 import { cancelGeneration, startGeneration } from "@/server/actions/generation";
 
@@ -59,6 +60,8 @@ export function GenerationPanel({
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  /** Set when the last attempt failed because the allowance is spent. */
+  const [blockedByPlan, setBlockedByPlan] = useState(false);
   const [watching, setWatching] = useState(initiallyRunning);
   const sourceRef = useRef<EventSource | null>(null);
 
@@ -142,10 +145,14 @@ export function GenerationPanel({
             onClick={async () => {
               setStarting(true);
               setError(null);
+              setBlockedByPlan(false);
               const result = await startGeneration({ projectId });
               setStarting(false);
               if (!result.ok) {
                 setError(result.message);
+                // The one failure with something to do about it. Every other
+                // error is ours to fix, not the student's to pay for.
+                setBlockedByPlan(result.code === "PLAN_LIMIT");
                 return;
               }
               setWatching(true);
@@ -177,6 +184,8 @@ export function GenerationPanel({
           {error}
         </p>
       ) : null}
+
+      {blockedByPlan ? <BuyPassButton projectId={projectId} className="mt-3" /> : null}
 
       {steps.length > 0 ? (
         <div className="mt-5">

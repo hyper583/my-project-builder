@@ -6,7 +6,8 @@ import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
 import { assertCanEdit } from "@/server/services/entitlements";
 import { AppError, toUserMessage } from "@/server/errors";
-import { SYSTEM_PROMPTS, ai, aiConfigured } from "@/server/services/ai";
+import { ASSISTANT_MAX_TOKENS } from "@/config/plans";
+import { ai, aiConfigured, assistantSystemPrompt } from "@/server/services/ai";
 import { buildProjectMemory } from "@/server/services/memory";
 import { checkRateLimit } from "@/server/services/rate-limit";
 
@@ -47,7 +48,20 @@ export async function POST(request: Request, ctx: RouteContext<"/api/projects/[i
 
     // The assistant draws on the same allowance as an edit — both are calls
     // to the model on the student's behalf.
-    await assertCanEdit(user, id);
+    const entitlements = await assertCanEdit(user, id);
+
+    /*
+     * What the assistant may write here, and how much of it.
+     *
+     * On an unpaid project the assistant is the way round the chapter gate: the
+     * unwritten chapters can simply be requested in chat, a piece at a time.
+     * The ceiling is what actually stops that — a reply too short to be a
+     * chapter — and the prompt rule makes the refusal a useful answer rather
+     * than a sentence that stops mid-word.
+     */
+    const paid = entitlements.basis !== "free";
+    const maxTokens = paid ? ASSISTANT_MAX_TOKENS.paid : ASSISTANT_MAX_TOKENS.free;
+    const system = assistantSystemPrompt({ paid });
 
     // Reuse the named conversation only if it belongs to this project and user.
     const conversation = conversationId
@@ -125,12 +139,12 @@ export async function POST(request: Request, ctx: RouteContext<"/api/projects/[i
         try {
           const result = await ai.stream(
             {
-              system: SYSTEM_PROMPTS.assistant,
+              system,
               context: memory.context,
               sources: memory.sources,
               history,
               instruction: `${sectionNote}${message}`,
-              maxTokens: 4000,
+              maxTokens,
             },
             (delta) => {
               answer += delta;

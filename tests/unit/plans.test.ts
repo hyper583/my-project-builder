@@ -8,6 +8,7 @@ import {
   PASS_CEILING_USD,
   PLANS,
   allowanceCeilingUsd,
+  formatPassPrice,
 } from "@/config/plans";
 
 /**
@@ -95,5 +96,26 @@ describe("what each allowance includes", () => {
     // so it is not something a project pass releases.
     expect(PLANS.FREE.canExportDemo).toBe(false);
     expect(PLANS.PAID.canExportDemo).toBe(true);
+  });
+});
+
+describe("the price, as a person reads it", () => {
+  it("shows the pass price with no stray decimals", () => {
+    // "NGN 25,000.00" reads like a form field. The price has no kobo in it, so
+    // it should not display any.
+    const shown = formatPassPrice();
+    expect(shown).toContain("25,000");
+    expect(shown).not.toContain(".00");
+  });
+
+  it("is derived from the constant the checkout charges", () => {
+    /*
+     * The reason this function exists. Every paywall and the pricing page read
+     * it, so none of them can quote a figure the server has not been told to
+     * charge — a hardcoded "₦25,000" in the copy is a promise nothing
+     * enforces.
+     */
+    expect(formatPassPrice(999_00, "NGN")).toContain("999");
+    expect(formatPassPrice(1_050_50, "NGN")).toContain("1,050.50");
   });
 });

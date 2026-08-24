@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { PanelLeft, Sparkles } from "lucide-react";
 
+import { LockedSection } from "@/components/payments/locked-section";
 import { useRegisterSections } from "@/components/shell/palette-scope";
 import { Sheet } from "@/components/ui/sheet";
 import { SectionEditor } from "@/components/workspace/section-editor";
@@ -17,6 +18,12 @@ export interface WorkspaceSection {
   number: string | null;
   title: string;
   content: string | null;
+  /**
+   * Beyond what this project's allowance covers. `content` is always null when
+   * this is set — the server withholds it rather than trusting this flag, so a
+   * bug here is a display fault and not a disclosure.
+   */
+  locked: boolean;
   placeholders: number;
 }
 
@@ -159,7 +166,13 @@ export function WorkspaceShell({
         </div>
 
         <div className="flex min-h-0 flex-col">
-          {active ? (
+          {active && active.locked ? (
+            <LockedSection
+              projectId={projectId}
+              sectionTitle={active.title}
+              sectionNumber={active.number}
+            />
+          ) : active ? (
             <SectionEditor
               key={active.id}
               projectId={projectId}

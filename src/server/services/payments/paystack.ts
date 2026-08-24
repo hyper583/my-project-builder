@@ -82,6 +82,12 @@ export async function initialiseTransaction(options: {
   currency: string;
   callbackUrl: string;
   metadata: Record<string, unknown>;
+  /**
+   * Which payment methods to offer, in this order. Omitted, Paystack shows its
+   * own default set — which leads with card, and card is the method a Nigerian
+   * student is least likely to complete a payment with.
+   */
+  channels?: readonly string[];
 }): Promise<InitialisedTransaction> {
   const reference = newReference();
 
@@ -98,6 +104,10 @@ export async function initialiseTransaction(options: {
       reference,
       callback_url: options.callbackUrl,
       metadata: options.metadata,
+      // Omitted entirely when not set, rather than sent as an empty array —
+      // Paystack reads `channels: []` as "offer nothing", which produces a
+      // checkout page with no way to pay.
+      ...(options.channels?.length ? { channels: [...options.channels] } : {}),
     }),
   });
 

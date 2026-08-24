@@ -4,7 +4,7 @@ import { MockProvider } from "@/server/services/ai/mock";
 import type { AIProvider } from "@/server/services/ai/types";
 
 export * from "@/server/services/ai/types";
-export { SYSTEM_PROMPTS } from "@/server/services/ai/prompts";
+export { SYSTEM_PROMPTS, assistantSystemPrompt } from "@/server/services/ai/prompts";
 
 /**
  * Selects the provider from configuration.

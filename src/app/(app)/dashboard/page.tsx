@@ -4,20 +4,16 @@ import { CircleCheck, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
 
 import { CountUp } from "@/components/motion/count-up";
 import { ProjectList, type ProjectCardData } from "@/components/dashboard/project-list";
-import { entitlementsFor, FREE_PROJECT_ALLOWANCE } from "@/config/plans";
+import { entitlementsFor, FREE_LIFETIME_PROJECTS } from "@/config/plans";
 import { listProjects } from "@/server/dal/projects";
 import { requireSession } from "@/server/dal/session";
 import { prisma } from "@/server/db";
+import { freeProjectsGenerated } from "@/server/services/entitlements";
 
 export const metadata: Metadata = { title: "My Projects" };
 
 function formatDate(value: Date): string {
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(value);
-}
-
-/** Start of the rolling 30-day window the usage limits are counted over. */
-function windowStart(): Date {
-  return new Date(Date.now() - 30 * 24 * 3600_000);
 }
 
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
@@ -27,11 +23,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const plan = entitlementsFor(user.planTier);
 
   const mine = { userId: user.id, deletedAt: null };
-  const since = windowStart();
 
   // Counts are unfiltered by the search box on purpose — a summary that
   // changed as you typed a query would be measuring the search, not the work.
-  const [projects, activeCount, readyCount, placeholderCount, generationCount] =
+  const [projects, activeCount, readyCount, placeholderCount, freeGenerations] =
     await Promise.all([
       listProjects(query),
       prisma.project.count({ where: { ...mine, status: { not: "ARCHIVED" } } }),
@@ -39,9 +34,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       prisma.sectionPlaceholder.count({
         where: { resolved: false, section: { project: mine } },
       }),
-      prisma.generationJob.count({
-        where: { project: mine, createdAt: { gte: since } },
-      }),
+      // The figure the server actually enforces, rather than a 30-day count of
+      // every run. Free first chapters are a lifetime total per account, and a
+      // windowed number here would promise students it comes back.
+      freeProjectsGenerated(user.id),
     ]);
 
   const cards: ProjectCardData[] = projects.map((project) => ({
@@ -98,9 +94,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         />
         <Stat
           icon={Sparkles}
-          label="Generation runs"
-          value={generationCount}
-          detail={`of ${FREE_PROJECT_ALLOWANCE.maxGenerations} free in 30 days`}
+          label="Free projects used"
+          value={freeGenerations}
+          detail={`of ${FREE_LIFETIME_PROJECTS} without a pass`}
         />
       </dl>
 

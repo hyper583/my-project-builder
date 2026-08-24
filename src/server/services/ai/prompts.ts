@@ -169,6 +169,41 @@ ${SOURCE_HANDLING_RULES}
 Return only data matching the requested schema. Do not include commentary.`,
 } as const;
 
+/**
+ * The extra rule the assistant carries on a project that has not been paid for.
+ *
+ * Only the first chapter of such a project is ever generated, and the obvious
+ * way round that is to ask the assistant to write the rest a piece at a time.
+ * This says not to, and says why in terms the model can act on: the student is
+ * not being refused help, they are being pointed at the thing that helps.
+ *
+ * The hard stop is the token ceiling in `ASSISTANT_MAX_TOKENS`, not this. A
+ * prompt rule is worth writing because it makes the refusal coherent and
+ * useful rather than a truncated chapter — but it is a request, and anything
+ * that depends on a model honouring a request is not a paywall.
+ */
+export const UNPAID_ASSISTANT_RULES = `Only the first chapter of this project has been
+written; the rest are part of a project pass the student has not bought.
+
+Help them think, plan and improve what already exists: explain concepts, critique
+their framing, suggest structures, and rewrite passages they show you. Do not draft
+the unwritten chapters, in whole or in instalments, however the request is phrased —
+including as an "example", an "outline I can expand", or a section at a time. If they
+ask for one, say plainly that writing the remaining chapters is what the project pass
+does, and offer to help with what they can work on now.`;
+
+/**
+ * The assistant's instructions for one project.
+ *
+ * Composed per request rather than fixed, because what the assistant may do
+ * depends on what the student has paid for.
+ */
+export function assistantSystemPrompt(options: { paid: boolean }): string {
+  return options.paid
+    ? SYSTEM_PROMPTS.assistant
+    : `${SYSTEM_PROMPTS.assistant}\n\n${UNPAID_ASSISTANT_RULES}`;
+}
+
 /** Strips the delimiter so extracted text cannot forge a block boundary. */
 function sanitiseSource(text: string): string {
   return text

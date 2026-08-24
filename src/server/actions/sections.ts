@@ -7,6 +7,7 @@ import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
 import { fail, ok, type ActionResult } from "@/server/errors";
+import { assertSectionUnlocked, projectEntitlements } from "@/server/services/entitlements";
 import { syncPlaceholders } from "@/server/services/placeholders";
 
 /**
@@ -44,6 +45,20 @@ export async function saveSection(
     if (!section) {
       return fail(new Error("Section not found"));
     }
+
+    /*
+     * Not into a chapter the project has not paid for.
+     *
+     * Typing here is not a disclosure — it is the student's own text — but the
+     * workspace withholds locked chapters by position, so anything saved into
+     * one is written and then never shown again. A silent black hole is worse
+     * than a refusal that explains itself.
+     *
+     * It also keeps `wordCount` meaning what the generator assumes it means:
+     * a locked chapter marked "written" would be skipped by the run the
+     * student later pays for.
+     */
+    await assertSectionUnlocked(await projectEntitlements(user, id), id, section.id);
 
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
 
