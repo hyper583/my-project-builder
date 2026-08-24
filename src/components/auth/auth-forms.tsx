@@ -105,10 +105,13 @@ function GoogleButton({
   pending,
   onStart,
   onFailure,
+  mode,
 }: {
   pending: boolean;
   onStart: () => void;
   onFailure: (message: string) => void;
+  /** Which page this is on. Changes the wording, not the flow. */
+  mode: "signin" | "signup";
 }) {
   async function go() {
     onStart();
@@ -127,6 +130,8 @@ function GoogleButton({
     }
   }
 
+  const signup = mode === "signup";
+
   return (
     <>
       <div className="flex items-center gap-3" aria-hidden="true">
@@ -136,8 +141,9 @@ function GoogleButton({
       </div>
       <Button type="button" variant="outline" size="lg" className="w-full" onClick={go} disabled={pending}>
         <GoogleMark />
-        Continue with Google
+        {signup ? "Sign up with Google" : "Continue with Google"}
       </Button>
+
     </>
   );
 }
@@ -191,6 +197,7 @@ export function RegisterForm({ googleEnabled = false }: { googleEnabled?: boolea
 
       {googleEnabled ? (
         <GoogleButton
+          mode="signup"
           pending={pending}
           onStart={() => {
             setError(null);
@@ -284,6 +291,7 @@ export function LoginForm({
 
       {googleEnabled ? (
         <GoogleButton
+          mode="signin"
           pending={pending}
           onStart={() => {
             setError(null);
