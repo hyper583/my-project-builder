@@ -16,11 +16,60 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,
+    /*
+     * Sign-in is NOT gated on verification.
+     *
+     * Stated explicitly because the tempting reading is that it should be.
+     * Turning it on would lock out every account that already exists — none of
+     * them are verified, because until now nothing ever sent a verification
+     * email — and it would put a mail round trip between a student and the work
+     * they came back for.
+     *
+     * Verification is what unlocks linking a Google sign-in to an existing
+     * password account; see `emailVerification` below.
+     */
+    requireEmailVerification: false,
     async sendResetPassword({ user, url }) {
       await emailDriver.send({
         to: user.email,
         subject: "Reset your My Project Builder password",
         body: `Open this link to choose a new password:\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+      });
+    },
+  },
+
+  /**
+   * Proving an address belongs to the person who typed it.
+   *
+   * This exists because of what happens without it once Google sign-in is
+   * enabled. Better Auth will not link a social login to an existing password
+   * account unless that account's email is verified — `requireLocalEmailVerified`
+   * defaults to true — and nothing here had ever set `emailVerified`, so every
+   * account was unverified and every such attempt would return a bare
+   * "account not linked".
+   *
+   * The tempting fix is to turn that requirement off. It must not be, and the
+   * default is not timid: with no verification anywhere, anyone can register
+   * someone else's address with a password of their choosing. If linking were
+   * then allowed, the real owner signing in with Google would be dropped into
+   * the attacker's account — who knows the password, and can read every project
+   * in it. That is account pre-hijacking, and this product holds unsubmitted
+   * dissertations.
+   *
+   * So the requirement stays, and this supplies the proof it asks for.
+   */
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    async sendVerificationEmail({ user, url }) {
+      await emailDriver.send({
+        to: user.email,
+        subject: "Confirm your email for My Project Builder",
+        body:
+          `Open this link to confirm your email address:\n\n${url}\n\n` +
+          "You can carry on using your account without this. Confirming lets " +
+          "you sign in with Google as well as with your password.\n\n" +
+          "If you didn't create an account, you can ignore this email.",
       });
     },
   },

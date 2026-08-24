@@ -146,9 +146,16 @@ export function RegisterForm() {
   );
 }
 
-export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
+export function LoginForm({
+  googleEnabled = false,
+  initialError = null,
+}: {
+  googleEnabled?: boolean;
+  /** A failure that happened before this page loaded, e.g. an OAuth callback. */
+  initialError?: string | null;
+}) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [pending, setPending] = useState(false);
   // Checked by default. Signing in on your own laptop and being asked again
   // tomorrow is the annoyance; the box exists so someone on a shared or
@@ -161,6 +168,10 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
     const { error: authError } = await signIn.social({
       provider: "google",
       callbackURL: "/dashboard",
+      // Where Google sends them back to when the link is refused. Without it
+      // they land on Better Auth's own unstyled error page, which says
+      // "unable_to_link_account" and offers no way forward.
+      errorCallbackURL: "/login",
     });
     // On success the browser is redirected to Google, so reaching this line
     // with no error means the redirect is in flight — leave the button busy.
