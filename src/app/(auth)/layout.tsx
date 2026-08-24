@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Check } from "lucide-react";
 
-import { Wordmark } from "@/components/shell/wordmark";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const ASSURANCES = [
@@ -33,14 +32,12 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           <ThemeToggle />
         </div>
 
+        {/* No wordmark above the form. The page already says what it is, the
+            panel alongside carries the product's name, and "Back to home" is
+            the way out — a third statement of the same thing was pushing the
+            fields down for nothing. */}
         <div className="flex flex-1 items-center justify-center px-5 py-10 sm:px-10">
-          <div className="w-full max-w-sm">
-            <Link href="/" className="focus-glow inline-flex rounded-md">
-              <Wordmark nameClassName="text-base" />
-            </Link>
-
-            <div className="mt-8">{children}</div>
-          </div>
+          <div className="w-full max-w-sm">{children}</div>
         </div>
       </div>
 
