@@ -18,13 +18,23 @@ export const metadata: Metadata = { title: "Export" };
  */
 const DENIAL: Record<string, string> = {
   DEMO_REQUIRES_PAID_PLAN:
-    "Exporting a sample project is part of the paid plan. Upgrade to download it, " +
-    "or create your own project and export that.",
+    "This is the sample project, and it is here to be read rather than handed in. " +
+    "Create your own project to write and download one.",
   REAL_EXPORT_NOT_IN_PLAN:
-    "Your project is written and yours to read here in full. Downloading it as a " +
-    "Word or PDF document is part of the paid plan.",
+    "Your first chapter is written and yours to keep. A project pass writes the " +
+    "remaining chapters and lets you download the finished document as Word or PDF.",
   NOT_OWNER: "This project belongs to someone else.",
 };
+
+/**
+ * Which refusals a pass actually answers.
+ *
+ * Only one of them. The sample project is withheld because it is a sample, and
+ * offering to sell a way round that would be selling something that does not
+ * exist — buying a pass does not make the demo submittable, and it is
+ * watermarked precisely so it cannot be.
+ */
+const ANSWERED_BY_A_PASS = new Set(["REAL_EXPORT_NOT_IN_PLAN"]);
 
 /**
  * Downloading the project as a document.
@@ -70,6 +80,7 @@ export default async function ProjectExportPage({ params }: PageProps<"/projects
           projectId={id}
           allowed={policy.allowed}
           denialReason={policy.allowed ? null : (DENIAL[policy.reason] ?? null)}
+          offerPass={!policy.allowed && ANSWERED_BY_A_PASS.has(policy.reason)}
           willCarryDisclaimer={policy.allowed && policy.disclaimer}
           placeholderCount={placeholderCount}
         />

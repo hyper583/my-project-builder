@@ -8,21 +8,23 @@ import { requireAdmin, requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
 import { AppError, fail, ok, type ActionResult } from "@/server/errors";
 import { claimPass, unclaimedPassCount } from "@/server/services/entitlements";
-import { PASS_CURRENCY, PASS_PRICE_KOBO } from "@/config/plans";
+import { PASS_CHANNELS, PASS_CURRENCY, PASS_PRICE_KOBO } from "@/config/plans";
 import { env, isPaystackConfigured } from "@/lib/env";
 import { initialiseTransaction } from "@/server/services/payments/paystack";
 
 /**
  * Buying, and spending, a project pass.
  *
- * There is no payment provider wired up yet, so every pass is granted by an
- * admin. That is deliberate rather than temporary scaffolding: the entitlement
- * model had to be right before money touched it, because the previous one —
- * a permanent `planTier` on the account — would have sold a renewing allowance
- * forever for a single payment.
+ * Passes arrive two ways: bought through Paystack, or granted by an admin. Only
+ * the second existed first, deliberately — the entitlement model had to be
+ * right before money touched it, because the previous one, a permanent
+ * `planTier` on the account, would have sold a renewing allowance forever for a
+ * single payment.
  *
- * When Paystack lands, its webhook creates the pass with `provider` and
- * `externalId` set and nothing else here changes.
+ * Nothing in this file creates a pass from a payment. Opening a transaction and
+ * being granted a pass are separate events on purpose, and the second happens
+ * in `grantPassForReference` once Paystack has been asked what actually
+ * occurred. Anything else would let reaching a URL be worth ₦25,000.
  */
 
 /**
@@ -34,9 +36,10 @@ import { initialiseTransaction } from "@/server/services/payments/paystack";
  * without asking the student to press a second button after paying.
  *
  * Nothing is granted here. This only opens a transaction; the pass is created
- * by the webhook, after Paystack has been asked what actually happened. A
- * student who closes the tab mid-payment still gets their pass, and one who
- * reaches the callback URL without paying does not.
+ * by the webhook or the return page, whichever gets there first, and only after
+ * Paystack has been asked what actually happened. A student who closes the tab
+ * mid-payment still gets their pass, and one who reaches the callback URL
+ * without paying does not.
  */
 export async function startPassCheckout(input: unknown): Promise<ActionResult<{ url: string }>> {
   try {
@@ -56,18 +59,25 @@ export async function startPassCheckout(input: unknown): Promise<ActionResult<{ 
     // Ownership, before the project id is written into payment metadata.
     const target = projectId ? await assertProjectOwnership(projectId, user) : null;
 
-    // Back to where they started. Buying from a project returns to that
-    // project's download page; buying a spare pass returns to settings, where
-    // the count of them is shown.
+    /*
+     * Where Paystack sends them afterwards.
+     *
+     * A dedicated return page rather than straight back to the project, because
+     * arriving at a still-locked project is indistinguishable from the payment
+     * having failed. The return page verifies the reference and says what
+     * happened — and on a development machine, where no webhook can reach us,
+     * it is the only thing that completes the payment at all.
+     */
     const callbackUrl = target
-      ? `${env.BETTER_AUTH_URL}/projects/${target}/export`
-      : `${env.BETTER_AUTH_URL}/settings`;
+      ? `${env.BETTER_AUTH_URL}/projects/${target}/pass/return`
+      : `${env.BETTER_AUTH_URL}/settings/pass/return`;
 
     const { authorizationUrl } = await initialiseTransaction({
       email: user.email,
       amountKobo: PASS_PRICE_KOBO,
       currency: PASS_CURRENCY,
       callbackUrl,
+      channels: PASS_CHANNELS,
       metadata: { userId: user.id, projectId: target },
     });
 

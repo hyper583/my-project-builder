@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Loader2, Sparkles, TriangleAlert } from "lucide-react";
+import { AlertCircle, Loader2, Lock, Sparkles, TriangleAlert } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AssistantChat, type ChatMessage } from "@/components/workspace/assistant-chat";
@@ -13,6 +13,8 @@ export interface NavSection {
   number: string | null;
   title: string;
   hasContent: boolean;
+  /** Beyond what this project's allowance covers. Its prose is not sent to the browser. */
+  locked: boolean;
   placeholders: number;
 }
 
@@ -73,11 +75,25 @@ export function ProjectNav({
                         {section.title}
                       </span>
                       {/*
-                       * The placeholder count is the honest measure of how much
-                       * of this section still needs the student's own data, so
-                       * it sits where they can see it without opening anything.
+                       * One mark per section, in order of what the student most
+                       * needs to know: a lock, else how much still needs their
+                       * own data, else that it has not been written. The
+                       * placeholder count is the honest measure of the second,
+                       * so it sits where they see it without opening anything.
+                       *
+                       * The lock wins because a locked section has no
+                       * placeholders and no prose — reporting it as "empty"
+                       * would describe it as an oversight rather than an offer.
                        */}
-                      {section.placeholders > 0 ? (
+                      {section.locked ? (
+                        <span
+                          title="Part of a project pass"
+                          className="mt-0.5 shrink-0 text-subtle-foreground"
+                        >
+                          <Lock className="size-3" aria-hidden="true" />
+                          <span className="sr-only">Locked — part of a project pass</span>
+                        </span>
+                      ) : section.placeholders > 0 ? (
                         <span
                           title={`${section.placeholders} place${section.placeholders === 1 ? "" : "s"} needing your data`}
                           className="mono mt-0.5 flex shrink-0 items-center gap-0.5 rounded bg-warning-subtle px-1 text-[0.625rem] text-warning"

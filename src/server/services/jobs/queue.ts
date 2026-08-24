@@ -34,8 +34,19 @@ export interface ClaimedJob {
  * Refuses to queue a second run while one is active — the brief requires that
  * duplicate generation be impossible, and a student double-clicking "Generate"
  * must not produce two workers writing the same sections.
+ *
+ * `maxChapters` is the paywall, and this is the only place it can be enforced
+ * honestly. The steps written here are what the worker executes, they live in
+ * the database, and nothing the browser sends can add to them — so a chapter
+ * with no step is a chapter that cannot be written, rather than one that is
+ * merely hidden after the fact.
  */
-export async function enqueueGeneration(projectId: string): Promise<string> {
+export async function enqueueGeneration(
+  projectId: string,
+  options: { maxChapters?: number } = {},
+): Promise<string> {
+  const maxChapters = options.maxChapters ?? Number.POSITIVE_INFINITY;
+
   const active = await prisma.generationJob.findFirst({
     where: { projectId, status: { in: ["QUEUED", "RUNNING"] } },
     select: { id: true },
@@ -75,7 +86,65 @@ export async function enqueueGeneration(projectId: string): Promise<string> {
     });
   }
 
-  const stages = buildStages(chapters);
+  /*
+   * Which chapters this run actually writes.
+   *
+   * Already-written chapters are skipped rather than rewritten, which is what
+   * makes "Generate" mean "continue" after a pass is bought: Chapter 1 was
+   * written on the free run, so the paid run picks up at Chapter 2 and leaves
+   * the student's edits to Chapter 1 alone. It also stops a run being spent
+   * reproducing prose the student already read and accepted.
+   *
+   * `wordCount` is the test rather than `content`, because it is maintained by
+   * both the pipeline and the editor's save action and can be asked for without
+   * reading a single word of the prose itself.
+   */
+  const written = await prisma.projectSection.findMany({
+    where: { projectId, wordCount: { gt: 0 } },
+    select: { id: true, parentId: true },
+  });
+  // A section's chapter is its parent; a chapter with prose of its own is
+  // itself. Both mark the chapter as done.
+  const writtenChapters = new Set(written.map((section) => section.parentId ?? section.id));
+
+  /*
+   * The allowance is a window over the FRONT of the project, not a count of
+   * whatever happens to be unwritten.
+   *
+   * Taking the first N unwritten chapters instead was the first attempt and it
+   * was wrong in a way worth recording: once Chapter 1 had been written, a free
+   * run's one chapter became Chapter 2 — the allowance walked forward through
+   * the project rather than staying put. Anchoring it to the start is also what
+   * makes this agree with the workspace, which locks by position, so the
+   * chapters that cannot be written are exactly the ones that cannot be read.
+   */
+  const allowed = Number.isFinite(maxChapters) ? chapters.slice(0, maxChapters) : chapters;
+  const toWrite = allowed.filter((chapter) => !writtenChapters.has(chapter.id));
+
+  /*
+   * Nothing left to write.
+   *
+   * Reached when every chapter the allowance covers already has prose. Queuing
+   * anyway would run the prologue and epilogue, succeed, change nothing, and
+   * charge the student a run for it — the same failure the no-chapters guard
+   * above exists to prevent, arrived at from the other direction.
+   *
+   * The two cases need different answers. A free project with chapters beyond
+   * its window is not finished, and telling a student it is would be a lie.
+   */
+  if (toWrite.length === 0) {
+    const beyondAllowance = chapters.length > allowed.length;
+    throw new AppError("VALIDATION", {
+      message: `Project ${projectId} has no unwritten chapters within its allowance`,
+      userMessage: beyondAllowance
+        ? "Every chapter your free project includes has been written. A project pass " +
+          "writes the rest."
+        : "Every chapter in this project has already been written. Edit them here, or " +
+          "clear a chapter first if you want it drafted again.",
+    });
+  }
+
+  const stages = buildStages(toWrite);
 
   const job = await prisma.generationJob.create({
     data: {

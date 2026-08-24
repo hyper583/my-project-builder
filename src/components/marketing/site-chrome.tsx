@@ -4,10 +4,19 @@ import { Wordmark } from "@/components/shell/wordmark";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 
+/*
+ * Anchors are written from the root rather than as bare fragments.
+ *
+ * These links are in the header and footer of every marketing page, not just
+ * the landing page. A bare "#faq" on /pricing scrolls to nothing, because there
+ * is no #faq on that page — "/#faq" goes to the landing page and then to the
+ * section, which is what the link says it does.
+ */
 const NAV = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#capabilities", label: "What you get" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#capabilities", label: "What you get" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export function SiteHeader() {

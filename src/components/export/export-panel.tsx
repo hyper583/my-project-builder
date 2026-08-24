@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertCircle, Check, Download, FileDown, Loader2, TriangleAlert } from "lucide-react";
 
+import { BuyPassButton } from "@/components/payments/buy-pass-button";
 import { Button } from "@/components/ui/button";
 import { startExport } from "@/server/actions/export";
 import type { ExportOutcome } from "@/server/services/export";
@@ -19,6 +20,7 @@ export function ExportPanel({
   projectId,
   allowed,
   denialReason,
+  offerPass,
   willCarryDisclaimer,
   placeholderCount,
 }: {
@@ -26,6 +28,8 @@ export function ExportPanel({
   allowed: boolean;
   /** Shown when `allowed` is false. Already phrased for the student. */
   denialReason: string | null;
+  /** Whether buying a pass is what would unlock this particular export. */
+  offerPass: boolean;
   /** True when this export will be watermarked and disclaimed. */
   willCarryDisclaimer: boolean;
   /** Unresolved [STUDENT DATA REQUIRED] markers across the project. */
@@ -62,13 +66,28 @@ export function ExportPanel({
       </p>
 
       {!allowed ? (
-        <p
-          role="note"
-          className="mt-4 flex items-start gap-2.5 rounded-md border border-border bg-muted p-3 text-sm leading-relaxed"
-        >
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          {denialReason ?? "Exporting is not available for this project on your plan."}
-        </p>
+        <>
+          <p
+            role="note"
+            className="mt-4 flex items-start gap-2.5 rounded-md border border-border bg-muted p-3 text-sm leading-relaxed"
+          >
+            <AlertCircle
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+            {denialReason ?? "Exporting is not available for this project on your plan."}
+          </p>
+
+          {/*
+            The way out of the message, which it did not have.
+
+            This panel explained that downloading was part of the paid plan and
+            then stopped, on a product where nothing in the interface could buy
+            one. Offered only where a pass is what unlocks it — the sample
+            project is a different refusal with a different answer.
+          */}
+          {offerPass ? <BuyPassButton projectId={projectId} className="mt-4" /> : null}
+        </>
       ) : (
         <>
           {willCarryDisclaimer ? (

@@ -66,6 +66,20 @@ export const PASS_PRICE_KOBO = 2_500_000;
 export const PASS_CURRENCY = "NGN";
 
 /**
+ * Which payment methods the checkout offers, in this order.
+ *
+ * Not the default set, and the order is the point. Card penetration among
+ * Nigerian students is low and card success rates are worse, so leading with
+ * one costs conversions from people who were willing to pay. A bank transfer
+ * gets a dedicated one-time account number and confirms in seconds; USSD works
+ * from a phone with no banking app at all. Card stays available, last.
+ *
+ * Paystack shows its own defaults when this is omitted, which is what the
+ * checkout used to do.
+ */
+export const PASS_CHANNELS = ["bank_transfer", "ussd", "card"] as const;
+
+/**
  * What one project pass includes.
  *
  * Three runs covers writing the project and changing direction twice; 150
@@ -73,27 +87,81 @@ export const PASS_CURRENCY = "NGN";
  * the project rather than a monthly rate, so they do not renew — and a student
  * who takes six months over their project is not punished for it, which is
  * what an expiry date would have done.
+ *
+ * `maxChapters` is what a pass actually releases: the whole document. It is the
+ * counterpart to the single chapter a free project gets, and it is enforced
+ * where the work is queued rather than where it is displayed.
  */
 export const PASS_ALLOWANCE = {
   maxGenerations: 3,
   maxEdits: 150,
+  maxChapters: Number.POSITIVE_INFINITY,
 } as const;
 
 /**
  * What a project without a pass includes.
  *
- * Counted per PERSON over a rolling 30 days rather than per project — this is
- * acquisition spend, so it has to be bounded per human. Counted per project it
- * would let someone delete and recreate their way to unlimited free runs.
+ * Generation is deliberately included, and deliberately bounded to ONE chapter.
+ * A student who has never seen the product write about their own topic has no
+ * reason to buy a pass — so they get Chapter 1, on their own subject, readable
+ * in full. What they do not get is the other four-fifths.
  *
- * Generation is deliberately included. A student who has never seen the
- * product write about their own topic has no reason to buy a pass; what they
- * cannot do is take the document away.
+ * `maxChapters` replaced a download-only paywall that did not work. The whole
+ * document was written and shown in the workspace, and the only thing stopping
+ * a student was the Export button — so selecting the text and pasting it into
+ * Word was a complete bypass. Prose that is never generated cannot be pasted.
+ *
+ * `maxGenerations` is per PROJECT here, not per month. The rolling window it
+ * replaced made a student wait thirty days to see anything from a second
+ * project, which punished the exact behaviour worth encouraging. The per-person
+ * bound moved to `FREE_LIFETIME_PROJECTS` instead, which is where it belongs.
  */
 export const FREE_PROJECT_ALLOWANCE = {
   maxGenerations: 1,
   maxEdits: 25,
+  maxChapters: 1,
 } as const;
+
+/**
+ * How long one assistant reply may be, by whether the project is paid for.
+ *
+ * This is a paywall, not a cost control, and it closes the largest hole in the
+ * chapter gate. The assistant is a general-purpose writer sitting inside the
+ * workspace: a student whose Chapter 2 will not generate can simply ask the
+ * chat to write Chapter 2, and before this it would — four thousand tokens at
+ * a time, twenty-five times over. Bounding what generation writes achieves
+ * nothing while a second door produces the same prose on request.
+ *
+ * 800 tokens is roughly 600 words. Enough to explain how to frame a hypothesis,
+ * what a methodology section has to establish, or how to fix a paragraph the
+ * student pastes in — and too short to be a chapter.
+ *
+ * A ceiling rather than an instruction, because instructions can be argued
+ * with. The prompt rule that accompanies this is worth having, but it is the
+ * polite half; this is the half that holds.
+ */
+export const ASSISTANT_MAX_TOKENS = {
+  free: 800,
+  paid: 4000,
+} as const;
+
+/**
+ * How many projects one ACCOUNT may ever have written for free.
+ *
+ * Acquisition spend has to be bounded per human, and per project alone is not a
+ * bound: a student's own delete is soft (`deletedAt`), and `maxProjects` counts
+ * only undeleted projects — so delete-and-recreate would be an unlimited supply
+ * of free chapters. Two matches `PLANS.FREE.maxProjects`, so someone comparing
+ * two topics can see both, and a third costs money.
+ *
+ * Counted in PROJECTS rather than runs, because "a run" is not a stable unit —
+ * the pipeline records usage per model call, and an earlier version of this
+ * counted those and told a student they had used eighty-nine free runs.
+ *
+ * Lifetime rather than windowed, because a window makes this bound expire and
+ * the whole point is that it does not.
+ */
+export const FREE_LIFETIME_PROJECTS = 2;
 
 export interface PlanEntitlements {
   /** Human-readable label shown in the UI. */
@@ -150,4 +218,27 @@ export function allowanceCeilingUsd(allowance: {
 
 export function entitlementsFor(tier: PlanTier): PlanEntitlements {
   return PLANS[tier];
+}
+
+/**
+ * The price, written the way a person reads it.
+ *
+ * Derived from the same constant the checkout charges, so the page and the
+ * payment cannot disagree. A hardcoded "₦25,000" in the marketing copy is a
+ * promise the server has no idea it made.
+ *
+ * No decimals: ₦25,000 is the price, and "₦25,000.00" reads like a form field.
+ * A price with kobo in it would show them, which is the correct behaviour for a
+ * price that has any.
+ */
+export function formatPassPrice(
+  amountMinor: number = PASS_PRICE_KOBO,
+  currency: string = PASS_CURRENCY,
+): string {
+  const major = amountMinor / 100;
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: Number.isInteger(major) ? 0 : 2,
+  }).format(major);
 }

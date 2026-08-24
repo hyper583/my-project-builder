@@ -1,5 +1,6 @@
 import { JobHealth, RecentErrors, Workers, type ErrorRow } from "@/components/admin/ops-panels";
 import {
+  FREE_LIFETIME_PROJECTS,
   FREE_PROJECT_ALLOWANCE,
   PASS_ALLOWANCE,
   entitlementsFor,
@@ -97,8 +98,10 @@ export default async function AdminOpsPage() {
        */
       const passes = passCounts.get(id) ?? 0;
       const allowed = {
-        generations:
-          FREE_PROJECT_ALLOWANCE.maxGenerations + passes * PASS_ALLOWANCE.maxGenerations,
+        // The free half is the LIFETIME account budget, not the per-project
+        // one. Using the per-project figure here would set the bar at a single
+        // run and flag every account that started a second free project.
+        generations: FREE_LIFETIME_PROJECTS + passes * PASS_ALLOWANCE.maxGenerations,
         edits: FREE_PROJECT_ALLOWANCE.maxEdits + passes * PASS_ALLOWANCE.maxEdits,
       };
       return {

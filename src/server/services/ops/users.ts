@@ -1,4 +1,10 @@
-import { FREE_PROJECT_ALLOWANCE, PASS_ALLOWANCE, entitlementsFor, type PlanTier } from "@/config/plans";
+import {
+  FREE_LIFETIME_PROJECTS,
+  FREE_PROJECT_ALLOWANCE,
+  PASS_ALLOWANCE,
+  entitlementsFor,
+  type PlanTier,
+} from "@/config/plans";
 import { prisma } from "@/server/db";
 
 /**
@@ -111,9 +117,9 @@ export async function listUsers(search: string, limit = 100): Promise<AdminUserR
        * allowance alone would flag every paying customer as over-limit, which
        * is precisely the signal an operator needs to stay meaningful.
        */
+      // The free half is the LIFETIME account budget, not the per-project one.
       allowedGenerations:
-        FREE_PROJECT_ALLOWANCE.maxGenerations +
-        user._count.passes * PASS_ALLOWANCE.maxGenerations,
+        FREE_LIFETIME_PROJECTS + user._count.passes * PASS_ALLOWANCE.maxGenerations,
       allowedEdits:
         FREE_PROJECT_ALLOWANCE.maxEdits + user._count.passes * PASS_ALLOWANCE.maxEdits,
       // Surfaced so the UI can explain why an action is unavailable, rather

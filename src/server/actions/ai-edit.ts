@@ -7,7 +7,7 @@ import { findAiAction } from "@/lib/ai-actions";
 import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
-import { assertCanEdit } from "@/server/services/entitlements";
+import { assertCanEdit, assertSectionUnlocked } from "@/server/services/entitlements";
 import { AppError, fail, ok, type ActionResult } from "@/server/errors";
 import { SYSTEM_PROMPTS, ai, aiConfigured } from "@/server/services/ai";
 import { buildProjectMemory } from "@/server/services/memory";
@@ -46,7 +46,12 @@ export async function runAiAction(input: unknown): Promise<
 
     // Counted against this project's pass, or against the free monthly
     // allowance when it has none.
-    await assertCanEdit(user, id);
+    const entitlements = await assertCanEdit(user, id);
+
+    // And not on a chapter the project has not paid for. The interface cannot
+    // aim here — a locked chapter has no editor to select text in — so this is
+    // for requests that did not come from the interface.
+    await assertSectionUnlocked(entitlements, id, sectionId);
 
     const section = await prisma.projectSection.findFirst({
       where: { id: sectionId, projectId: id },

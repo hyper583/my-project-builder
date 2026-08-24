@@ -3,10 +3,17 @@ import { Check, Minus } from "lucide-react";
 
 import { AppearanceSetting } from "@/components/settings/appearance-setting";
 import { EmailConfirmation } from "@/components/settings/email-confirmation";
-import { entitlementsFor, FREE_PROJECT_ALLOWANCE, PASS_ALLOWANCE } from "@/config/plans";
+import { BuyPassButton } from "@/components/payments/buy-pass-button";
+import {
+  entitlementsFor,
+  FREE_LIFETIME_PROJECTS,
+  FREE_PROJECT_ALLOWANCE,
+  formatPassPrice,
+  PASS_ALLOWANCE,
+} from "@/config/plans";
 import { requireSession } from "@/server/dal/session";
 import { prisma } from "@/server/db";
-import { unclaimedPassCount } from "@/server/services/entitlements";
+import { freeProjectsGenerated, unclaimedPassCount } from "@/server/services/entitlements";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -28,11 +35,11 @@ export default async function SettingsPage() {
 
   // Real counts, read from the same tables the limits are enforced against —
   // so what this page shows and what the server allows cannot drift apart.
-  const [projectCount, generationCount, editCount, passesAvailable, passesClaimed] = await Promise.all([
+  const [projectCount, freeGenerations, editCount, passesAvailable, passesClaimed] = await Promise.all([
     prisma.project.count({ where: { userId: user.id, deletedAt: null, status: { not: "ARCHIVED" } } }),
-    prisma.generationJob.count({
-      where: { project: { userId: user.id }, createdAt: { gte: since } },
-    }),
+    // The same figure the server enforces against, not a second count that
+    // could disagree with it.
+    freeProjectsGenerated(user.id),
     prisma.usageRecord.count({
       where: { userId: user.id, kind: "AI_EDIT", createdAt: { gte: since } },
     }),
@@ -81,28 +88,51 @@ export default async function SettingsPage() {
             <Row label="Projects with a pass" value={String(passesClaimed)} />
           </dl>
 
-          <p className="mt-5 border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">
-            Each pass includes {PASS_ALLOWANCE.maxGenerations} generation runs and{" "}
-            {PASS_ALLOWANCE.maxEdits} AI editing actions for its project, and lets you download
-            the finished document.
-          </p>
+          <div className="mt-5 border-t border-border pt-5">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Each pass writes every chapter of its project, includes{" "}
+              {PASS_ALLOWANCE.maxGenerations} generation runs and {PASS_ALLOWANCE.maxEdits} AI
+              editing actions, and lets you download the finished document.
+            </p>
+
+            {/*
+              Buying from here leaves the pass unclaimed — nothing has said
+              which project it is for. Most students will buy from the project
+              itself, where it is spent immediately; this is for anyone who
+              wants one in hand first.
+            */}
+            <BuyPassButton
+              variant="outline"
+              label={`Buy a spare pass — ${formatPassPrice()}`}
+              className="mt-4"
+            />
+          </div>
         </Section>
 
         <Section
           title={`Free allowance — ${plan.label}`}
-          description="What you can do without a pass. Counted over a rolling 30-day window."
+          description="What you can do without a pass."
         >
           <div className="space-y-4">
             <Meter label="Active projects" used={projectCount} limit={plan.maxProjects} />
+            {/*
+              Two meters, counted two different ways, and the labels have to say
+              so. Free projects are a lifetime total per account — the number
+              does not come back — whereas editing actions renew. Showing both as
+              though they shared a window was the previous version, and it told
+              students the first one would return.
+            */}
             <Meter
-              label="Generation runs"
-              used={generationCount}
-              limit={FREE_PROJECT_ALLOWANCE.maxGenerations}
+              label="Free projects written"
+              used={freeGenerations}
+              limit={FREE_LIFETIME_PROJECTS}
+              note="across your account, in total"
             />
             <Meter
               label="AI editing actions"
               used={editCount}
               limit={FREE_PROJECT_ALLOWANCE.maxEdits}
+              note="in the last 30 days"
             />
           </div>
 
@@ -151,14 +181,36 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Meter({ label, used, limit }: { label: string; used: number; limit: number }) {
+function Meter({
+  label,
+  used,
+  limit,
+  note,
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  /** How this one is counted, when that is not the same as the others. */
+  note?: string;
+}) {
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   const atLimit = used >= limit;
 
   return (
     <div>
       <div className="mb-1.5 flex items-baseline justify-between gap-3">
-        <span className="text-sm">{label}</span>
+        <span className="text-sm">
+          {label}
+          {/*
+            A real space, not only the margin. `ml-1.5` separates the two
+            visually and leaves the accessible name as "Free projects
+            writtenacross your account" — the gap has to exist in the text as
+            well as in the layout.
+          */}
+          {note ? (
+            <> <span className="ml-1.5 text-xs text-muted-foreground">{note}</span></>
+          ) : null}
+        </span>
         <span className="tabular text-sm text-muted-foreground">
           {used} / {limit}
         </span>
