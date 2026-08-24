@@ -91,9 +91,13 @@ export default async function BlueprintPage({ params }: PageProps<"/projects/[id
   const chapters = p.sections.filter((s) => s.parentId === null);
   // The same resolver the export pipeline uses, so what the banner promises and
   // what an export actually does cannot drift apart.
+  const pass = await prisma.projectPass.findUnique({
+    where: { projectId: p.id },
+    select: { claimedAt: true },
+  });
   const exportPolicy = resolveExportPolicy(
     { id: user.id, role: user.role, planTier: user.planTier },
-    { id: p.id, kind: p.kind, ownerId: p.userId },
+    { id: p.id, kind: p.kind, ownerId: p.userId, hasPass: Boolean(pass?.claimedAt) },
   );
 
   const activeJob = await prisma.generationJob.findFirst({

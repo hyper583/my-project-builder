@@ -2,68 +2,98 @@ import { describe, expect, it } from "vitest";
 
 import {
   EDIT_COST_USD,
+  FREE_PROJECT_ALLOWANCE,
   GENERATION_COST_USD,
-  MONTHLY_CEILING_USD,
+  PASS_ALLOWANCE,
+  PASS_CEILING_USD,
   PLANS,
-  monthlyCeilingUsd,
+  allowanceCeilingUsd,
 } from "@/config/plans";
 
 /**
- * What the plans cost to serve.
+ * What the allowances cost to serve.
  *
  * An entitlement is a bill, and these were written as feature configuration by
  * someone who had never costed them: the paid plan offered 20 generation runs
  * and 1,000 editing actions a month, about $58.60 of API spend against a
- * one-time pass worth roughly $18. Nothing failed, because nothing was
+ * one-time payment worth roughly $18. Nothing failed, because nothing was
  * checking. These tests are that check.
  */
 
-describe("what a plan costs to serve", () => {
-  it("keeps a paid month under the ceiling a project pass earns", () => {
-    expect(monthlyCeilingUsd("PAID")).toBeLessThanOrEqual(MONTHLY_CEILING_USD);
+describe("what a project pass costs to serve", () => {
+  it("stays under the ceiling one pass earns", () => {
+    expect(allowanceCeilingUsd(PASS_ALLOWANCE)).toBeLessThanOrEqual(PASS_CEILING_USD);
   });
 
-  it("keeps a free user cheap enough to acquire a paying one", () => {
+  it("is a lifetime cost, not a monthly one", () => {
+    /*
+     * The distinction the whole model turns on. A pass is consumed by one
+     * project, so its ceiling is the entire cost of that sale — there is no
+     * second month in which the same payment buys another allowance.
+     *
+     * At ₦25,000 (about $18) against a $5.46 ceiling, that is roughly 70%
+     * gross margin. The old model charged the same once and served that
+     * allowance again every thirty days, forever.
+     */
+    const perPass = allowanceCeilingUsd(PASS_ALLOWANCE);
+    const twelveMonthsOfTheOldModel = perPass * 12;
+    expect(twelveMonthsOfTheOldModel).toBeGreaterThan(18);
+    expect(perPass).toBeLessThan(18);
+  });
+
+  it("keeps a free project cheap enough to acquire a paying one", () => {
     // Free users are marketing spend. At a tenth converting, each payer costs
     // ten of these — it has to stay small next to the price of a pass.
-    expect(monthlyCeilingUsd("FREE")).toBeLessThan(1.5);
+    expect(allowanceCeilingUsd(FREE_PROJECT_ALLOWANCE)).toBeLessThan(1.5);
   });
 
-  it("costs strictly more to serve a paid user than a free one", () => {
-    expect(monthlyCeilingUsd("PAID")).toBeGreaterThan(monthlyCeilingUsd("FREE"));
+  it("costs strictly more to serve a pass than a free project", () => {
+    expect(allowanceCeilingUsd(PASS_ALLOWANCE)).toBeGreaterThan(
+      allowanceCeilingUsd(FREE_PROJECT_ALLOWANCE),
+    );
   });
 
   it("is computed from the measured unit costs, not a hard-coded total", () => {
-    const paid = PLANS.PAID;
-    expect(monthlyCeilingUsd("PAID")).toBeCloseTo(
-      paid.maxGenerationsPerMonth * GENERATION_COST_USD + paid.maxEditsPerMonth * EDIT_COST_USD,
+    expect(allowanceCeilingUsd(PASS_ALLOWANCE)).toBeCloseTo(
+      PASS_ALLOWANCE.maxGenerations * GENERATION_COST_USD +
+        PASS_ALLOWANCE.maxEdits * EDIT_COST_USD,
       6,
     );
   });
 });
 
-describe("what each plan allows", () => {
-  it("does not let a free account take the deliverable away", () => {
-    // The paywall is the download, not the writing.
-    expect(PLANS.FREE.canExportReal).toBe(false);
-    expect(PLANS.FREE.canExportDemo).toBe(false);
-  });
-
-  it("lets a free account generate, so there is something to pay for", () => {
+describe("what each allowance includes", () => {
+  it("lets a project without a pass be generated, so there is something to buy", () => {
     // A student who has never seen the product write about their own topic has
-    // no reason to buy it.
-    expect(PLANS.FREE.maxGenerationsPerMonth).toBeGreaterThan(0);
-  });
-
-  it("lets a paid account export both its own work and a sample", () => {
-    expect(PLANS.PAID.canExportReal).toBe(true);
-    expect(PLANS.PAID.canExportDemo).toBe(true);
+    // no reason to pay for it. What they cannot do is take the document away.
+    expect(FREE_PROJECT_ALLOWANCE.maxGenerations).toBeGreaterThan(0);
   });
 
   it("allows enough runs to change direction, and no more", () => {
-    // One run writes the project; the rest are for changing your mind. An
-    // unbounded number is how a one-time payment becomes an open tab.
-    expect(PLANS.PAID.maxGenerationsPerMonth).toBeGreaterThanOrEqual(2);
-    expect(PLANS.PAID.maxGenerationsPerMonth).toBeLessThanOrEqual(5);
+    // One run writes the project; the rest are for changing your mind.
+    expect(PASS_ALLOWANCE.maxGenerations).toBeGreaterThanOrEqual(2);
+    expect(PASS_ALLOWANCE.maxGenerations).toBeLessThanOrEqual(5);
+  });
+
+  it("no longer decides downloading from the account", () => {
+    /*
+     * `canExportReal` used to live on the plan, which made the right to
+     * download a permanent property of an ACCOUNT — one payment released every
+     * project it would ever create. Whether a document can be downloaded is
+     * now a question about the project, answered by `resolveExportPolicy` from
+     * whether a pass was spent on it.
+     */
+    for (const plan of Object.values(PLANS)) {
+      expect(plan).not.toHaveProperty("canExportReal");
+      expect(plan).not.toHaveProperty("maxGenerationsPerMonth");
+      expect(plan).not.toHaveProperty("maxEditsPerMonth");
+    }
+  });
+
+  it("keeps the sample export as an account-level perk", () => {
+    // The sample illustrates the product rather than being the student's work,
+    // so it is not something a project pass releases.
+    expect(PLANS.FREE.canExportDemo).toBe(false);
+    expect(PLANS.PAID.canExportDemo).toBe(true);
   });
 });

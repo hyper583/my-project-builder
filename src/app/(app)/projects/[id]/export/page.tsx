@@ -37,9 +37,19 @@ export default async function ProjectExportPage({ params }: PageProps<"/projects
   const { project, user } = await requireProject(id);
   if (!project) notFound();
 
+  const pass = await prisma.projectPass.findUnique({
+    where: { projectId: project.id },
+    select: { claimedAt: true },
+  });
+
   const policy = resolveExportPolicy(
     { id: user.id, role: user.role, planTier: user.planTier },
-    { id: project.id, kind: project.kind, ownerId: project.userId },
+    {
+      id: project.id,
+      kind: project.kind,
+      ownerId: project.userId,
+      hasPass: Boolean(pass?.claimedAt),
+    },
   );
 
   // The honest count of what still needs the student's own data. Shown before

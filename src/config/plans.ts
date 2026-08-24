@@ -33,91 +33,100 @@ export const GENERATION_COST_USD = 0.72;
 export const EDIT_COST_USD = 0.022;
 
 /**
- * The most a single paying month may cost to serve.
+ * The most one project pass may cost to serve, ever.
  *
- * Set against a one-time project pass of ₦25,000 — about $18 — so a ceiling
- * near $5.40 leaves roughly 70% gross margin before payment fees and the cost
- * of free users who never convert.
+ * Ever, not per month. A pass is bought once at ₦25,000 — about $18 — and is
+ * consumed by a single project, so this ceiling is the whole lifetime cost of
+ * that sale. It leaves roughly 70% gross margin before payment fees and the
+ * cost of free users who never convert.
+ *
+ * This used to be a monthly figure, which was the defect: entitlements came
+ * from `User.planTier` with no end, so one payment bought a renewing allowance
+ * forever and turned loss-making inside four months.
  */
-export const MONTHLY_CEILING_USD = 5.6;
+export const PASS_CEILING_USD = 5.6;
+
+/**
+ * What one project pass includes.
+ *
+ * Three runs covers writing the project and changing direction twice; 150
+ * editing actions covers reworking it section by section. Both are quotas on
+ * the project rather than a monthly rate, so they do not renew — and a student
+ * who takes six months over their project is not punished for it, which is
+ * what an expiry date would have done.
+ */
+export const PASS_ALLOWANCE = {
+  maxGenerations: 3,
+  maxEdits: 150,
+} as const;
+
+/**
+ * What a project without a pass includes.
+ *
+ * Counted per PERSON over a rolling 30 days rather than per project — this is
+ * acquisition spend, so it has to be bounded per human. Counted per project it
+ * would let someone delete and recreate their way to unlimited free runs.
+ *
+ * Generation is deliberately included. A student who has never seen the
+ * product write about their own topic has no reason to buy a pass; what they
+ * cannot do is take the document away.
+ */
+export const FREE_PROJECT_ALLOWANCE = {
+  maxGenerations: 1,
+  maxEdits: 25,
+} as const;
 
 export interface PlanEntitlements {
   /** Human-readable label shown in the UI. */
   readonly label: string;
   /** May a user on this plan export a DEMO project? Admins bypass this entirely. */
   readonly canExportDemo: boolean;
-  /** May a user on this plan export their own REAL projects? */
-  readonly canExportReal: boolean;
   /** Maximum concurrently active (non-archived, non-deleted) projects. */
   readonly maxProjects: number;
   /** Total upload storage in megabytes. */
   readonly maxStorageMb: number;
-  /** AI generation runs per rolling 30 days. */
-  readonly maxGenerationsPerMonth: number;
-  /** AI editing actions and assistant messages per rolling 30 days. */
-  readonly maxEditsPerMonth: number;
 }
 
+/**
+ * Account-level entitlements.
+ *
+ * Only what belongs to a PERSON lives here. What a student may do with a
+ * particular project — generate it, edit it, download it — is decided per
+ * project by `projectEntitlements`, because that is what is actually bought.
+ *
+ * `canExportReal` used to live here and was the defect this whole change
+ * exists to fix: it was a permanent property of an account, so one payment
+ * granted it forever.
+ */
 export const PLANS: Record<PlanTier, PlanEntitlements> = {
-  /**
-   * Generate freely, export nothing.
-   *
-   * A free student can run the wizard, generate their project and read every
-   * word of it in the workspace. What they cannot do is take it away. That is
-   * the whole paywall, and it sits at the moment the work becomes useful
-   * rather than at the moment it becomes visible — a student who has not seen
-   * the thing written about their own topic has no reason to pay for it.
-   *
-   * `canExportReal` was previously true, which gave the product away: a free
-   * account could generate a complete real project and download it, and the
-   * only thing the paid plan added to exporting was the *sample*. That is
-   * backwards — it charged for the demonstration and released the deliverable.
-   */
   FREE: {
     label: "Free",
+    /* The sample is an illustration of the product, so it stays behind the
+       paywall; the student's own work is released by a pass instead. */
     canExportDemo: false,
-    canExportReal: false,
     maxProjects: 2,
     maxStorageMb: 50,
-    maxGenerationsPerMonth: 1,
-    maxEditsPerMonth: 25,
   },
 
-  /**
-   * One project, properly.
-   *
-   * Three generation runs covers writing the project and changing direction
-   * twice; 150 editing actions covers reworking it section by section. Both
-   * are generous against observed use and bounded against cost.
-   *
-   * These were 20 runs and 1,000 edits, which nobody had costed: a user taking
-   * what the plan promised would have cost about $58.60 a month against a
-   * ₦25,000 one-time pass. The limits were written as feature configuration
-   * rather than as a spending ceiling, and they were the largest financial
-   * risk in the repository.
-   */
   PAID: {
     label: "Student Pro",
     canExportDemo: true,
-    canExportReal: true,
     maxProjects: 5,
     maxStorageMb: 500,
-    maxGenerationsPerMonth: 3,
-    maxEditsPerMonth: 150,
   },
 } as const;
 
 /**
- * What a plan costs to serve if a user takes everything it offers.
+ * What an allowance costs to serve if it is taken in full.
  *
  * The ceiling, not the expectation — almost nobody exhausts an allowance. It
  * exists so the worst case is a known number rather than a discovery.
  */
-export function monthlyCeilingUsd(tier: PlanTier): number {
-  const plan = PLANS[tier];
-  return (
-    plan.maxGenerationsPerMonth * GENERATION_COST_USD + plan.maxEditsPerMonth * EDIT_COST_USD
-  );
+export function allowanceCeilingUsd(allowance: {
+  maxGenerations: number;
+  maxEdits: number;
+}): number {
+  return allowance.maxGenerations * GENERATION_COST_USD + allowance.maxEdits * EDIT_COST_USD;
 }
 
 export function entitlementsFor(tier: PlanTier): PlanEntitlements {

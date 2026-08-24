@@ -29,9 +29,9 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
     createdAt: formatDate(user.createdAt),
     projects: user.projects,
     generations: user.generations,
-    generationLimit: user.generationLimit,
+    generationLimit: user.allowedGenerations,
     edits: user.edits,
-    editLimit: user.editLimit,
+    editLimit: user.allowedEdits,
     lastActiveAdmin: user.lastActiveAdmin,
     isSelf: user.id === admin.id,
   }));

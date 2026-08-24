@@ -1,5 +1,10 @@
 import { JobHealth, RecentErrors, Workers, type ErrorRow } from "@/components/admin/ops-panels";
-import { entitlementsFor, type PlanTier } from "@/config/plans";
+import {
+  FREE_PROJECT_ALLOWANCE,
+  PASS_ALLOWANCE,
+  entitlementsFor,
+  type PlanTier,
+} from "@/config/plans";
 import { requireAdmin } from "@/server/dal/session";
 import { prisma } from "@/server/db";
 import { AILMENT_REMEDY, listAilingJobs, listWorkers } from "@/server/services/ops/health";
@@ -63,6 +68,18 @@ export default async function AdminOpsPage() {
     : [];
   const byId = new Map(users.map((u) => [u.id, u]));
 
+  // Grouped, not one count per user — the same discipline as the usage query
+  // above, so this panel does not slow in proportion to how many people it
+  // lists.
+  const passRows = userIds.length
+    ? await prisma.projectPass.groupBy({
+        by: ["userId"],
+        where: { userId: { in: userIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const passCounts = new Map(passRows.map((r) => [r.userId, r._count._all]));
+
   const usage = userIds
     .map((id) => {
       const user = byId.get(id);
@@ -73,16 +90,27 @@ export default async function AdminOpsPage() {
         .filter((r) => r.kind === "AI_GENERATION" || r.kind === "AI_EDIT")
         .reduce((total, r) => total + (r._sum.quantity ?? 0), 0);
       const plan = entitlementsFor((user?.planTier ?? "FREE") as PlanTier);
+      /*
+       * The free allowance plus whatever this account's passes include.
+       * Measuring against the free allowance alone would flag every paying
+       * customer, and a signal that fires on normal use is not a signal.
+       */
+      const passes = passCounts.get(id) ?? 0;
+      const allowed = {
+        generations:
+          FREE_PROJECT_ALLOWANCE.maxGenerations + passes * PASS_ALLOWANCE.maxGenerations,
+        edits: FREE_PROJECT_ALLOWANCE.maxEdits + passes * PASS_ALLOWANCE.maxEdits,
+      };
       return {
         id,
         email: user?.email ?? "(deleted user)",
         plan: plan.label,
         generations,
-        generationLimit: plan.maxGenerationsPerMonth,
+        generationLimit: allowed.generations,
         edits,
-        editLimit: plan.maxEditsPerMonth,
+        editLimit: allowed.edits,
         tokens,
-        overLimit: generations > plan.maxGenerationsPerMonth || edits > plan.maxEditsPerMonth,
+        overLimit: generations > allowed.generations || edits > allowed.edits,
       };
     })
     .sort((a, b) => b.tokens - a.tokens);

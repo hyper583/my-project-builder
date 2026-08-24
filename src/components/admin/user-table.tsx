@@ -18,6 +18,7 @@ export interface UserRow {
   createdAt: string;
   projects: number;
   generations: number;
+  /** Free allowance plus what this account's passes include. */
   generationLimit: number;
   edits: number;
   editLimit: number;

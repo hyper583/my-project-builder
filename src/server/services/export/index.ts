@@ -115,9 +115,21 @@ export async function runExport(options: {
   // Indistinguishable from a project that does not exist, so an id never leaks.
   if (!project) throw new AppError("NOT_FOUND");
 
+  // Whether a pass has been spent on THIS project. The policy stays pure, so
+  // the lookup belongs here rather than inside it.
+  const pass = await prisma.projectPass.findUnique({
+    where: { projectId: project.id },
+    select: { claimedAt: true },
+  });
+
   const policy = resolveExportPolicy(
     { id: actor.id, role: actor.role, planTier: actor.planTier },
-    { id: project.id, kind: project.kind, ownerId: project.userId },
+    {
+      id: project.id,
+      kind: project.kind,
+      ownerId: project.userId,
+      hasPass: Boolean(pass?.claimedAt),
+    },
   );
 
   if (!policy.allowed) {

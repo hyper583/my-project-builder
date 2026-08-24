@@ -40,7 +40,7 @@ export const db = prisma;
 
 const TRUNCATE_ALL = `
   TRUNCATE TABLE
-    "audit_log", "usage_record", "export", "subscription",
+    "audit_log", "usage_record", "export", "subscription", "project_pass",
     "ai_message", "ai_conversation",
     "project_version", "generation_step", "generation_job",
     "project_citation", "project_reference",

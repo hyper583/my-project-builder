@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 import { LIMITS } from "@/config/limits";
-import { entitlementsFor } from "@/config/plans";
 import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
+import { assertCanEdit } from "@/server/services/entitlements";
 import { AppError, toUserMessage } from "@/server/errors";
 import { SYSTEM_PROMPTS, ai, aiConfigured } from "@/server/services/ai";
 import { buildProjectMemory } from "@/server/services/memory";
@@ -45,17 +45,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/projects/[i
 
     await checkRateLimit(`assistant:${user.id}`, ...LIMITS.rateLimit.aiAction);
 
-    const plan = entitlementsFor(user.planTier);
-    const used = await prisma.usageRecord.count({
-      where: {
-        userId: user.id,
-        kind: "AI_EDIT",
-        createdAt: { gte: new Date(Date.now() - 30 * 24 * 3600_000) },
-      },
-    });
-    if (plan.maxEditsPerMonth > 0 && used >= plan.maxEditsPerMonth) {
-      throw new AppError("PLAN_LIMIT", { message: "Monthly AI limit reached" });
-    }
+    // The assistant draws on the same allowance as an edit — both are calls
+    // to the model on the student's behalf.
+    await assertCanEdit(user, id);
 
     // Reuse the named conversation only if it belongs to this project and user.
     const conversation = conversationId
