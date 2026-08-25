@@ -284,11 +284,13 @@ describe("counting what has been used", () => {
     /*
      * Why the counter is a UsageRecord and not a GenerationJob.
      *
-     * Nothing hard-deletes a project today, so both would pass the soft-delete
-     * test above. This one deletes the row the way a retention job or a
-     * hand-run DELETE would, which cascades every GenerationJob with it. A
-     * counter derived from those would drop to zero here and quietly refund
-     * the account its free chapters, with nothing looking broken.
+     * No code path hard-deletes a project, so both counters would pass the
+     * soft-delete test above. This deletes the row outright — the way someone
+     * clearing up in a database console does, which is not hypothetical: the
+     * first real account this ran against had four generated projects whose
+     * rows were gone exactly that way. Every generation job cascaded with
+     * them, so a counter derived from those reads zero here and hands the
+     * account its free projects back, with nothing looking broken.
      */
     const user = await createUser();
     const first = await createProject(user.id, { title: "First" });
