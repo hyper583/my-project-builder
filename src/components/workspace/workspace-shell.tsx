@@ -11,6 +11,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { SectionEditor } from "@/components/workspace/section-editor";
 import type { ChatMessage } from "@/components/workspace/assistant-chat";
 import { AssistantPanel, ProjectNav, type NavChapter } from "@/components/workspace/panels";
+import { plainTextToHtml } from "@/lib/rich-text";
 import { useMediaQuery } from "@/lib/use-client-store";
 
 export interface WorkspaceSection {
@@ -75,9 +76,22 @@ export function WorkspaceShell({
   const applyRevision = useCallback(
     (text: string) => {
       if (!editor) return;
+
+      /*
+       * Converted to paragraph markup before it goes in.
+       *
+       * Handed the raw string, `insertContent` puts a multi-paragraph answer
+       * into one paragraph and keeps the newlines as literal characters, which
+       * render as nothing. An accepted "Expand" arrived as a single 2,400
+       * character block — the suggestion the student read and the text they
+       * got were not the same shape.
+       */
+      const html = plainTextToHtml(text);
+      if (!html) return;
+
       // Replaces exactly what the student had highlighted, so an accepted
       // revision lands where they expect and stays undoable.
-      editor.chain().focus().insertContent(text).run();
+      editor.chain().focus().insertContent(html).run();
       setSelection("");
     },
     [editor],

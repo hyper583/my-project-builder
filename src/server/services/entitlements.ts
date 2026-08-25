@@ -290,15 +290,37 @@ export async function assertSectionUnlocked(
   projectId: string,
   sectionId: string,
 ): Promise<void> {
-  if (!Number.isFinite(entitlements.maxChapters)) return;
+  if (await isSectionLocked(entitlements, projectId, sectionId)) {
+    throw new AppError("PLAN_LIMIT", {
+      message: `Section ${sectionId} is beyond the allowance of ${entitlements.maxChapters} chapter(s)`,
+      userMessage:
+        "That chapter is part of a project pass. Buy one to write and edit the whole project.",
+    });
+  }
+}
+
+/**
+ * The same question, answered rather than thrown.
+ *
+ * The assistant needs to know this to decide whether it may see a section's
+ * prose, and that is a branch rather than a failure — it still answers, just
+ * without the text. Catching an exception to get a boolean would work and would
+ * read as though something had gone wrong.
+ */
+export async function isSectionLocked(
+  entitlements: ProjectEntitlements,
+  projectId: string,
+  sectionId: string,
+): Promise<boolean> {
+  if (!Number.isFinite(entitlements.maxChapters)) return false;
 
   const section = await prisma.projectSection.findFirst({
     where: { id: sectionId, projectId },
     select: { id: true, parentId: true },
   });
   // A section that does not exist is the caller's NOT_FOUND to report, not a
-  // lock. Returning here keeps the two failures distinguishable.
-  if (!section) return;
+  // lock. Saying "not locked" keeps the two failures distinguishable.
+  if (!section) return false;
 
   const chapters = await prisma.projectSection.findMany({
     where: { projectId, parentId: null },
@@ -310,13 +332,7 @@ export async function assertSectionUnlocked(
   const chapterId = section.parentId ?? section.id;
   const position = chapters.findIndex((chapter) => chapter.id === chapterId);
 
-  if (position >= entitlements.maxChapters) {
-    throw new AppError("PLAN_LIMIT", {
-      message: `Section ${sectionId} is beyond the allowance (chapter ${position + 1} of ${entitlements.maxChapters})`,
-      userMessage:
-        "That chapter is part of a project pass. Buy one to write and edit the whole project.",
-    });
-  }
+  return position >= entitlements.maxChapters;
 }
 
 /**
