@@ -41,13 +41,15 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         </div>
       </div>
 
-      {/* The ink field. Used once per page at most, which is what gives it weight. */}
-      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-l border-border bg-ink px-12 py-14 lg:flex">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-y-0 right-16 w-px bg-on-ink/12"
-        />
+      {/* The ink field. Used once per page at most, which is what gives it weight.
 
+          There was a full-height hairline ruled 4rem in from the right edge
+          here, meant to suggest a margin rule on paper. Nothing aligned to it
+          — the content sits at 3rem — so it read as a seam in the layout
+          rather than as a deliberate mark, and was reported as a defect. A
+          decoration a viewer mistakes for a bug has failed at the only job it
+          had. */}
+      <aside className="relative hidden w-1/2 flex-col justify-between overflow-hidden border-l border-border bg-ink px-12 py-14 lg:flex">
         <p className="mono flex items-center gap-3 text-[0.6875rem] font-medium tracking-[0.14em] text-on-ink/60 uppercase">
           <span aria-hidden="true" className="h-px w-8 bg-on-ink/25" />
           Academic project workspace

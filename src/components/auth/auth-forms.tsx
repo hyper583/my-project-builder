@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/auth/field";
 import { MIN_PASSWORD_LENGTH, signIn, signUp } from "@/lib/auth-client";
 
 /**
@@ -36,45 +37,6 @@ function GoogleMark() {
         d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58Z"
       />
     </svg>
-  );
-}
-
-function Field({
-  id,
-  label,
-  type = "text",
-  autoComplete,
-  required = true,
-  hint,
-}: {
-  id: string;
-  label: string;
-  type?: string;
-  autoComplete?: string;
-  required?: boolean;
-  hint?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      {/* Visible label — never a placeholder standing in for one. */}
-      <label htmlFor={id} className="block text-sm font-medium">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        autoComplete={autoComplete}
-        required={required}
-        aria-describedby={hint ? `${id}-hint` : undefined}
-        className={"h-11 w-full field px-3 text-base"}
-      />
-      {hint ? (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
-    </div>
   );
 }
 
