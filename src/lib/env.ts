@@ -77,6 +77,23 @@ const serverEnvSchema = z.object({
    */
   RESEND_API_KEY: z.string().optional().or(z.literal("")),
   EMAIL_FROM: z.string().optional().or(z.literal("")),
+
+  /**
+   * States that STORAGE_LOCAL_DIR survives a restart.
+   *
+   * Consulted only in production, and only to permit `STORAGE_DRIVER=local`
+   * there. On a VPS with a real disk that is a perfectly good arrangement; on
+   * anything serverless or container-scheduled the filesystem is discarded
+   * between deploys, and every exported document and uploaded source goes with
+   * it — silently, because writing to a temporary directory succeeds.
+   *
+   * Nothing inside the process can tell those two apart, so this asks. Saying
+   * nothing is read as the dangerous case.
+   */
+  STORAGE_LOCAL_PERSISTENT: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -92,7 +109,68 @@ function loadEnv(): ServerEnv {
         `Copy .env.example to .env.local and fill in the required values.`,
     );
   }
+
+  assertProductionDrivers(parsed.data);
   return parsed.data;
+}
+
+/**
+ * Refuses to start production on a development driver.
+ *
+ * Both defaults are deliberately safe for a laptop and quietly destructive in
+ * production, and neither announces itself. The console email driver *prints*
+ * the message and returns success, so registration and password reset both look
+ * like they worked while nobody receives anything — an account that cannot
+ * verify its email also cannot ever link a Google sign-in. Local storage
+ * *writes* the file and returns success, onto a disk that a serverless host
+ * discards between deploys.
+ *
+ * Neither failure surfaces until a real person is stuck, which is why this is a
+ * refusal to boot rather than a warning in a log nobody reads. It is checked
+ * here because this module is imported before anything can serve a request.
+ */
+function assertProductionDrivers(config: ServerEnv): void {
+  if (config.NODE_ENV !== "production") return;
+
+  /*
+   * `next build` also runs as NODE_ENV=production and must not be blocked.
+   *
+   * A build compiles pages; it sends no email and stores no file, so the
+   * drivers are irrelevant to it — and refusing here would mean the production
+   * secrets had to be present on whatever machine runs the build, which is a
+   * worse arrangement than the one this is guarding against. Next sets this
+   * phase itself; the check that matters happens when the server starts.
+   */
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
+
+  const problems: string[] = [];
+
+  if (config.EMAIL_DRIVER === "console") {
+    problems.push(
+      "EMAIL_DRIVER is \"console\", which prints emails to the log instead of " +
+        "sending them. Password resets and email confirmation would silently " +
+        'fail for every user. Set EMAIL_DRIVER="resend" with RESEND_API_KEY and ' +
+        "EMAIL_FROM at a domain verified in Resend.",
+    );
+  }
+
+  if (config.STORAGE_DRIVER === "local" && !config.STORAGE_LOCAL_PERSISTENT) {
+    problems.push(
+      'STORAGE_DRIVER is "local". On a serverless or container host that ' +
+        "filesystem is discarded, taking every exported document and uploaded " +
+        'source with it. Set STORAGE_DRIVER="supabase", or set ' +
+        'STORAGE_LOCAL_PERSISTENT="true" if this really is a machine with a disk ' +
+        "that survives a restart.",
+    );
+  }
+
+  if (problems.length > 0) {
+    throw new Error(
+      `Refusing to start in production with development drivers:\n\n` +
+        problems.map((problem) => `  - ${problem}`).join("\n\n") +
+        `\n\nThese are silent failures, not loud ones, which is why this stops here.`,
+    );
+  }
 }
 
 export const env: ServerEnv = loadEnv();

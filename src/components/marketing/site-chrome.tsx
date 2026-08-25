@@ -19,6 +19,12 @@ const NAV = [
   { href: "/#faq", label: "FAQ" },
 ];
 
+const LEGAL_NAV = [
+  { href: "/terms", label: "Terms" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/refunds", label: "Refunds" },
+];
+
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-sm">
@@ -113,9 +119,25 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-border pt-6 sm:flex-row sm:items-center">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} My Project Builder. All rights reserved.
-          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} My Project Builder. All rights reserved.
+            </p>
+            {/* In the footer of every page, which is where a payment processor
+                and a cautious student both go looking for them. */}
+            <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              {LEGAL_NAV.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="text-muted-foreground transition-colors duration-150 hover:text-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
           <ThemeToggle />
         </div>
       </div>

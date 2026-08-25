@@ -1,0 +1,111 @@
+# Deployment blueprint.
+#
+# TWO services, and that is the whole reason this file exists. Generation runs
+# in a separate long-lived process so it survives the student closing the tab —
+# which means a platform that only runs request handlers cannot host this app.
+# On a web-only deploy the queue fills and nothing ever claims from it: every
+# project sits at "Generating" forever, and nothing reports an error, because
+# nothing has failed. It simply is not running.
+#
+# Render is one of several that can do this; Railway and Fly are equivalent, and
+# a plain VPS running both under a process manager is fine too. What matters is
+# that something runs `npm run worker`.
+#
+# Nothing here is secret. Every value marked `sync: false` must be set in the
+# Render dashboard, on BOTH services — they share a database and an API key.
+
+services:
+  - type: web
+    name: my-project-builder
+    runtime: node
+    plan: starter
+    # `prisma generate` before the build, not in postinstall: a cached install
+    # skips postinstall and the build then fails on a missing client.
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      # Must be the public URL of THIS service. Google's redirect and the
+      # Paystack callback are both built from it, so a stale value sends paying
+      # students to a host that no longer exists.
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        value: anthropic
+      # Refused at boot if left on the development defaults — see
+      # `assertProductionDrivers` in src/lib/env.ts.
+      - key: EMAIL_DRIVER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: project-files
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+
+  - type: worker
+    name: my-project-builder-worker
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npx prisma generate
+    startCommand: npm run worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      # A worker claims only jobs queued for its OWN provider, and it reads this
+      # once at startup. A worker booted with the wrong value cannot pick up the
+      # queue at all — which is the safe direction, and is why the mismatch that
+      # once wrote placeholder prose into a real project cannot recur.
+      - key: AI_PROVIDER
+        value: anthropic
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      # The worker writes exported documents, so it needs the same storage as
+      # the web service. Pointing them at different buckets produces exports the
+      # download route cannot find.
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: project-files
+      - key: EMAIL_DRIVER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
