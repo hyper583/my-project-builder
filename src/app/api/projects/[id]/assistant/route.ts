@@ -4,10 +4,11 @@ import { LIMITS } from "@/config/limits";
 import { assertProjectOwnership } from "@/server/dal/projects";
 import { requireUser } from "@/server/dal/session";
 import { prisma } from "@/server/db";
-import { assertCanEdit } from "@/server/services/entitlements";
+import { assertCanEdit, isSectionLocked } from "@/server/services/entitlements";
 import { AppError, toUserMessage } from "@/server/errors";
 import { ASSISTANT_MAX_TOKENS } from "@/config/plans";
 import { ai, aiConfigured, assistantSystemPrompt } from "@/server/services/ai";
+import { sectionPlainText } from "@/server/services/ai/section-text";
 import { buildProjectMemory } from "@/server/services/memory";
 import { checkRateLimit } from "@/server/services/rate-limit";
 
@@ -124,16 +125,46 @@ export async function POST(request: Request, ctx: RouteContext<"/api/projects/[i
     // get sent wholesale on every turn.
     const memory = await buildProjectMemory(projectId, { query: message.slice(0, 300) });
 
+    /*
+     * What the student is looking at, including what it says.
+     *
+     * Only the number and title used to be sent, so the assistant could name
+     * the section and not read it — asked what was missing from 1.1, it replied
+     * that it could not see 1.1 and asked for it to be pasted in, while the
+     * student sat looking at it on the same screen.
+     *
+     * The prose is withheld for a LOCKED chapter and only there. Everything
+     * else here is text the student already has in front of them, so sending it
+     * discloses nothing; a locked chapter is the one case where the browser was
+     * never given it either, and routing it through the assistant would be a
+     * way of reading what the paywall withheld.
+     */
     let sectionNote = "";
     if (sectionId) {
       const section = await prisma.projectSection.findFirst({
         where: { id: sectionId, projectId },
-        select: { number: true, title: true },
+        select: { id: true, number: true, title: true, content: true },
       });
+
       if (section) {
-        sectionNote = `The student is currently viewing "${[section.number, section.title]
-          .filter(Boolean)
-          .join(" ")}".\n\n`;
+        const label = [section.number, section.title].filter(Boolean).join(" ");
+        const locked = await isSectionLocked(entitlements, projectId, section.id);
+        const body = locked ? null : sectionPlainText(section.content);
+
+        // Three different situations, and they need three different answers.
+        // "Not written yet" invites the assistant to help write it, which is
+        // right for an empty section and exactly wrong for a locked one.
+        if (body) {
+          sectionNote =
+            `The student is currently viewing "${label}". Its current text is:\n\n` +
+            `<current_section>\n${body}\n</current_section>\n\n`;
+        } else if (locked) {
+          sectionNote =
+            `The student is currently viewing "${label}", which is part of a project ` +
+            `pass they have not bought. You cannot see its text and must not write it.\n\n`;
+        } else {
+          sectionNote = `The student is currently viewing "${label}", which is still empty.\n\n`;
+        }
       }
     }
 
