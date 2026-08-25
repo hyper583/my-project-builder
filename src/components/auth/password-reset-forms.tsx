@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/auth/field";
 import { MIN_PASSWORD_LENGTH, requestPasswordReset, resetPassword } from "@/lib/auth-client";
 
 /**
@@ -15,43 +16,6 @@ import { MIN_PASSWORD_LENGTH, requestPasswordReset, resetPassword } from "@/lib/
  * hands the link to the email driver — but these two screens were never built,
  * which left "Forgot your password?" on the sign-in form pointing at a 404.
  */
-
-function Field({
-  id,
-  label,
-  type = "text",
-  autoComplete,
-  hint,
-}: {
-  id: string;
-  label: string;
-  type?: string;
-  autoComplete?: string;
-  hint?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      {/* Visible label — never a placeholder standing in for one. */}
-      <label htmlFor={id} className="block text-sm font-medium">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        autoComplete={autoComplete}
-        required
-        aria-describedby={hint ? `${id}-hint` : undefined}
-        className={"h-11 w-full field px-3 text-base"}
-      />
-      {hint ? (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-}
 
 function ErrorBanner({ message }: { message: string }) {
   return (
