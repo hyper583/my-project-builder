@@ -186,10 +186,26 @@ function selectDriver(): StorageDriver {
 
 export const storage: StorageDriver = selectDriver();
 
-/** Storage keys are generated, never derived from the user-supplied filename. */
+/**
+ * Storage keys are generated, never derived from the user-supplied filename.
+ *
+ * The separator is added here rather than expected from the caller. Renderers
+ * report their extension as "docx", not ".docx", so the key came out as
+ * `<uuid>docx` — no dot anywhere in it. Downloads were unaffected, because the
+ * key is opaque and the filename is set on the response, which is why this
+ * survived to be spotted in a bucket listing rather than by anything failing.
+ *
+ * It still wants fixing: object storage and every tool that browses it read the
+ * extension to decide what a file is, and a bucket full of extensionless blobs
+ * is one nobody can look through.
+ *
+ * Existing keys are untouched. `Export.storageKey` holds whatever was stored at
+ * the time and is read back verbatim, so old files keep resolving.
+ */
 export function buildStorageKey(projectId: string, extension: string): string {
-  const safeExt = extension.replace(/[^a-z0-9.]/gi, "").slice(0, 10);
-  return path.posix.join("projects", projectId, `${randomUUID()}${safeExt}`);
+  const cleaned = extension.replace(/[^a-z0-9]/gi, "").slice(0, 10);
+  const suffix = cleaned ? `.${cleaned}` : "";
+  return path.posix.join("projects", projectId, `${randomUUID()}${suffix}`);
 }
 
 export function sha256(data: Buffer): string {

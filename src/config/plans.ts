@@ -66,16 +66,22 @@ export const PASS_PRICE_KOBO = 2_500_000;
 export const PASS_CURRENCY = "NGN";
 
 /**
- * Which payment methods the checkout offers, in this order.
+ * Which payment methods the checkout offers.
  *
- * Not the default set, and the order is the point. Card penetration among
- * Nigerian students is low and card success rates are worse, so leading with
- * one costs conversions from people who were willing to pay. A bank transfer
- * gets a dedicated one-time account number and confirms in seconds; USSD works
- * from a phone with no banking app at all. Card stays available, last.
+ * WHICH, not in what order. This list was written believing the order carried
+ * through, and it does not: a real checkout opened with bank transfer first
+ * rendered as Card, Transfer, USSD — Paystack lays the tabs out however it
+ * chooses. The array is a whitelist and nothing more.
  *
- * Paystack shows its own defaults when this is omitted, which is what the
- * checkout used to do.
+ * It still earns its place. Card penetration among Nigerian students is low and
+ * card success rates are worse, so the methods that actually complete have to
+ * be present: a bank transfer gets a dedicated one-time account number and
+ * confirms in seconds, and USSD works from a phone with no banking app at all.
+ * Omitting this leaves Paystack's defaults, which may not include them.
+ *
+ * Leading with bank transfer would still be worth having. If it matters enough,
+ * Paystack's inline integration lets a channel be preselected; this hosted
+ * checkout does not.
  */
 export const PASS_CHANNELS = ["bank_transfer", "ussd", "card"] as const;
 
