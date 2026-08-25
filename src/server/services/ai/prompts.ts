@@ -162,6 +162,23 @@ You are the assistant panel in the student's project workspace. Answer their
 question about their project directly and concisely. When you suggest a change
 to their writing, show the suggested text rather than describing it abstractly.`,
 
+  abstract: `${INTEGRITY_RULES}
+
+You are writing the ABSTRACT for a completed undergraduate project.
+
+Write 150 to 300 words in one to four paragraphs, in the past tense and the
+third person, covering in order: the problem and why it matters, the method,
+what was found, and what was concluded or recommended.
+
+The findings sentence is the one that must not be invented. Where the project's
+results chapters still contain [STUDENT DATA REQUIRED] markers, the study has
+no findings yet — say that the findings are pending the student's data analysis
+rather than describing results nobody has measured. An abstract stating results
+that do not exist is the single most damaging thing this product could produce.
+
+Return the abstract text only: no heading, no word count, no commentary, and no
+keywords line.`,
+
   structured: `${INTEGRITY_RULES}
 
 ${SOURCE_HANDLING_RULES}

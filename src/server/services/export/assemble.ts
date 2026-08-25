@@ -1,4 +1,8 @@
 import {
+  buildFrontMatter,
+  numberTablesAndFigures,
+} from "@/server/services/export/front-matter";
+import {
   DEFAULT_FORMATTING,
   DEMO_DISCLAIMER,
   parseSectionHtml,
@@ -30,6 +34,18 @@ export interface AssembleInput {
     department: string | null;
     programme: string | null;
     degree: string | null;
+    /** Named on the Certification and Declaration pages. */
+    matricNumber?: string | null;
+    supervisorName?: string | null;
+    supervisorTitle?: string | null;
+    headOfDepartment?: string | null;
+  } | null;
+  /** The student's own words on the front pages. Absent until they write them. */
+  frontMatter: {
+    dedication: string | null;
+    acknowledgements: string | null;
+    abstract: string | null;
+    keywords: string | null;
   } | null;
   formatting: {
     font: string | null;
@@ -191,6 +207,16 @@ function buildChapters(sections: AssembleInput["sections"]): ExportChapter[] {
 
 /** Assembles the canonical document the renderers consume. */
 export function assembleDocument(input: AssembleInput): ExportDocument {
+  const chapters = buildChapters(input.sections);
+
+  /*
+   * Numbering happens before the lists are read, because it is what fills them.
+   * The same pass writes the caption into each table and figure, so the body
+   * and the index are produced from one source rather than two that agree by
+   * luck.
+   */
+  const contentsLists = numberTablesAndFigures(chapters);
+
   return {
     title: input.project.title,
     topic: input.project.topic,
@@ -201,7 +227,25 @@ export function assembleDocument(input: AssembleInput): ExportDocument {
     programme: input.institution?.programme ?? null,
     degree: input.institution?.degree ?? null,
     dateLabel: input.dateLabel,
-    chapters: buildChapters(input.sections),
+    frontMatter: buildFrontMatter({
+      title: input.project.title,
+      author: input.author,
+      institution: input.institution?.institution ?? null,
+      department: input.institution?.department ?? null,
+      degree: input.institution?.degree ?? null,
+      programme: input.institution?.programme ?? null,
+      matricNumber: input.institution?.matricNumber ?? null,
+      supervisorName: input.institution?.supervisorName ?? null,
+      supervisorTitle: input.institution?.supervisorTitle ?? null,
+      headOfDepartment: input.institution?.headOfDepartment ?? null,
+      dedication: input.frontMatter?.dedication ?? null,
+      acknowledgements: input.frontMatter?.acknowledgements ?? null,
+      abstract: input.frontMatter?.abstract ?? null,
+      keywords: input.frontMatter?.keywords ?? null,
+      dateLabel: input.dateLabel,
+    }),
+    contentsLists,
+    chapters,
     references: input.references.map(formatReference).filter(Boolean),
     formatting: parseFormatting(input.formatting),
     // Whether to mark the document is the policy's decision, not the

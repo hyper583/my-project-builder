@@ -29,6 +29,10 @@ function document(overrides: Partial<ExportDocument> = {}): ExportDocument {
     programme: null,
     degree: null,
     dateLabel: "August 2026",
+    // A project with nothing filled in yet: the front pages are omitted
+    // rather than printed empty. Tests that need them override these.
+    frontMatter: [],
+    contentsLists: [],
     chapters: [
       {
         number: "1",

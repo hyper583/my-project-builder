@@ -108,6 +108,17 @@ function buildStyles(formatting: ExportFormatting) {
       lineHeight: 1.3,
     },
     figure: { textAlign: "center", fontFamily: italicOf(font), marginTop: 6, marginBottom: 6 },
+    /* `lineHeight` is set here rather than inherited from the page: a caption
+       is prose, and the page style deliberately carries no line spacing —
+       inheriting it into `fixed` furniture is what compounded it per rendered
+       page and produced "unsupported number: -2.626e+21". */
+    caption: {
+      textAlign: "center",
+      fontFamily: boldOf(font),
+      marginTop: 4,
+      marginBottom: 8,
+      lineHeight: leading,
+    },
     reference: { marginBottom: 8, paddingLeft: 28, textIndent: -28, lineHeight: leading },
     // Title page
     titleCentre: { textAlign: "center", marginBottom: 8, lineHeight: leading },
@@ -225,7 +236,12 @@ function Blocks({ blocks, styles, font }: { blocks: Block[]; styles: Styles; fon
 
           case "table":
             return (
-              <View key={index} style={styles.table}>
+              /* Caption above a table, below a figure — the usual convention.
+                 The text is the same one the List of Tables carries, written
+                 by a single numbering pass so the two cannot disagree. */
+              <View key={index}>
+                {block.label ? <Text style={styles.caption}>{block.label}</Text> : null}
+              <View style={styles.table}>
                 {block.rows.map((row, r) => (
                   <View key={r} style={styles.row} wrap={false}>
                     {row.cells.map((cell, c) => (
@@ -243,6 +259,7 @@ function Blocks({ blocks, styles, font }: { blocks: Block[]; styles: Styles; fon
                   </View>
                 ))}
               </View>
+              </View>
             );
 
           case "placeholder":
@@ -254,9 +271,10 @@ function Blocks({ blocks, styles, font }: { blocks: Block[]; styles: Styles; fon
 
           case "image":
             return (
-              <Text key={index} style={styles.figure}>
-                [Figure: {block.alt}]
-              </Text>
+              <View key={index}>
+                <Text style={styles.figure}>[Figure: {block.alt}]</Text>
+                {block.label ? <Text style={styles.caption}>{block.label}</Text> : null}
+              </View>
             );
         }
       })}
@@ -329,6 +347,16 @@ export async function renderPdf(doc: ExportDocument): Promise<RenderResult> {
         {wants ? <Text style={styles.disclaimerBlock}>{wants.titleBlock}</Text> : null}
       </Page>
 
+      {/* Declaration, Certification, Dedication, Acknowledgements, Abstract —
+          each on its own page, which is what a department expects to receive. */}
+      {doc.frontMatter.map((page, index) => (
+        <Page key={`fm-${index}`} size="A4" style={styles.page} bookmark={page.heading}>
+          <PageFurniture />
+          <Text style={styles.heading1}>{page.heading}</Text>
+          <Blocks blocks={page.blocks} styles={styles} font={font} />
+        </Page>
+      ))}
+
       <Page size="A4" style={styles.page} bookmark="Table of Contents">
         <PageFurniture />
         <Text style={styles.heading1}>TABLE OF CONTENTS</Text>
@@ -355,6 +383,15 @@ export async function renderPdf(doc: ExportDocument): Promise<RenderResult> {
           </View>
         ) : null}
       </Page>
+
+      {/* The lists of tables and figures follow the contents, never precede it. */}
+      {doc.contentsLists.map((page, index) => (
+        <Page key={`cl-${index}`} size="A4" style={styles.page} bookmark={page.heading}>
+          <PageFurniture />
+          <Text style={styles.heading1}>{page.heading}</Text>
+          <Blocks blocks={page.blocks} styles={styles} font={font} />
+        </Page>
+      ))}
 
       {doc.chapters.map((chapter, index) => (
         <Page

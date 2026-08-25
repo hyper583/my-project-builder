@@ -87,6 +87,19 @@ export async function runExport(options: {
           department: true,
           programme: true,
           degree: true,
+          // Named on the Certification and Declaration pages.
+          matricNumber: true,
+          supervisorName: true,
+          supervisorTitle: true,
+          headOfDepartment: true,
+        },
+      },
+      frontMatter: {
+        select: {
+          dedication: true,
+          acknowledgements: true,
+          abstract: true,
+          keywords: true,
         },
       },
       formatting: { select: { font: true, fontSize: true, lineSpacing: true, margins: true } },
@@ -148,6 +161,7 @@ export async function runExport(options: {
       project: { title: project.title, topic: project.topic, kind: project.kind },
       author: project.user.name,
       institution: project.institution,
+      frontMatter: project.frontMatter,
       formatting: project.formatting,
       sections: project.sections,
       references: project.references,

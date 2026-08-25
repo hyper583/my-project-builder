@@ -49,6 +49,10 @@ function baseDocument(overrides: Partial<ExportDocument> = {}): ExportDocument {
     programme: "B.Sc. Computer Science",
     degree: "Bachelor of Science",
     dateLabel: "August 2026",
+    // A project with nothing filled in yet: the front pages are omitted
+    // rather than printed empty. Tests that need them override these.
+    frontMatter: [],
+    contentsLists: [],
     chapters: [
       {
         number: "1",
@@ -265,5 +269,34 @@ describe("the page estimate against the real renderer", () => {
     // this document rendered to 98 pages.
     expect(rendered).toBeGreaterThanOrEqual(60);
     expect(rendered).toBeLessThanOrEqual(80);
+  });
+});
+
+describe("front matter", () => {
+  const withFrontMatter = () =>
+    baseDocument({
+      frontMatter: [
+        { heading: "DECLARATION", blocks: [{ kind: "paragraph", runs: [{ kind: "text", text: "I hereby declare" }] }] },
+        { heading: "ABSTRACT", blocks: [{ kind: "paragraph", runs: [{ kind: "text", text: "This study examines" }] }] },
+      ],
+      contentsLists: [
+        { heading: "LIST OF TABLES", blocks: [{ kind: "paragraph", runs: [{ kind: "text", text: "Table 4.1: Response Rate" }] }] },
+      ],
+    });
+
+  it("renders every page into the file", async () => {
+    const text = await pdfText((await renderPdf(withFrontMatter())).bytes);
+
+    expect(text).toContain("DECLARATION");
+    expect(text).toContain("ABSTRACT");
+    expect(text).toContain("LIST OF TABLES");
+  });
+
+  it("still marks a demo export with front matter present", async () => {
+    // Each front page carries the same fixed furniture as every other page,
+    // and `assertDisclaimer` checks what was actually drawn.
+    const result = await renderPdf({ ...withFrontMatter(), disclaimer: DEMO_DISCLAIMER });
+
+    expect(result.disclaimerRendered).toBe(true);
   });
 });
