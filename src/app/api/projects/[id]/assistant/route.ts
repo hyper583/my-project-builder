@@ -28,10 +28,35 @@ export const dynamic = "force-dynamic";
 /** How many prior turns to replay. Enough for continuity, bounded for cost. */
 const HISTORY_LIMIT = 12;
 
-const bodySchema = z.object({
+/**
+ * The request body.
+ *
+ * `nullish` rather than `optional` on the two ids, and that distinction was the
+ * whole bug. `optional()` accepts `undefined`; JSON has no `undefined`, so a
+ * browser sending "no conversation yet" or "no section open" sends `null` —
+ * `conversationId` comes from `conversation?.id ?? null` and `sectionId` from
+ * the active section, which is null until one is chosen.
+ *
+ * The effect was that the FIRST message of every conversation was rejected with
+ * "Invalid input: expected string, received null". Not an edge case: it is the
+ * opening move. The assistant had never once answered a new thread, and nothing
+ * caught it because nothing had ever sent a message through it.
+ *
+ * Normalised back to `undefined` so the rest of the handler has one absent
+ * value to reason about rather than two.
+ */
+export const bodySchema = z.object({
   message: z.string().trim().min(1).max(8000),
-  sectionId: z.string().min(1).optional(),
-  conversationId: z.string().min(1).optional(),
+  sectionId: z
+    .string()
+    .min(1)
+    .nullish()
+    .transform((value) => value ?? undefined),
+  conversationId: z
+    .string()
+    .min(1)
+    .nullish()
+    .transform((value) => value ?? undefined),
 });
 
 export async function POST(request: Request, ctx: RouteContext<"/api/projects/[id]/assistant">) {
