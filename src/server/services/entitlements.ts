@@ -146,9 +146,13 @@ function generationsUsed(projectId: string): Promise<number> {
  * Read from `UsageRecord` rather than `GenerationJob`, because this number has
  * to outlive the project it was spent on. `GenerationJob` is `onDelete:
  * Cascade`; `UsageRecord.projectId` is a plain column with no relation at all.
- * Nothing hard-deletes a project today, so both would agree right now — the
- * difference is what happens the day a retention job or an admin tool is added
- * and quietly hands every account its free projects back.
+ *
+ * No code path hard-deletes a project, which made this look like a precaution
+ * against a retention job somebody might add one day. It is not. The first
+ * account this was run against had four generated projects whose rows were
+ * simply gone — removed by hand, through a database console, during
+ * development. Every one of their generation jobs went with them. Only the
+ * usage ledger was left, and it was the only reason the count was right.
  *
  * "Free" is derived rather than stored: a project counts unless it now carries
  * a pass. So a student who writes Chapter 1 free and then buys a pass for that
