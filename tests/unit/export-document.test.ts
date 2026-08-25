@@ -138,6 +138,8 @@ describe("document measures", () => {
     faculty: null,
     department: null,
     programme: null,
+    frontMatter: [],
+    contentsLists: [],
     degree: null,
     dateLabel: "2026",
     chapters: [{ number: "1", title: "One", blocks: [], sections: [{ number: "1.1", title: "S", blocks }] }],

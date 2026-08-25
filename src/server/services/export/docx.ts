@@ -24,6 +24,7 @@ import {
 import type {
   Block,
   ExportDocument,
+  FrontMatterPage,
   Inline,
   RenderResult,
 } from "@/server/services/export/document";
@@ -73,6 +74,15 @@ function runs(inlines: Inline[], base: { font: string; size: number }): (TextRun
   });
 }
 
+/** A numbered caption, centred and bold, as departments expect them. */
+function caption(label: string, base: { font: string; size: number }): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 120, after: 60 },
+    children: [new TextRun({ text: label, font: base.font, size: base.size, bold: true })],
+  });
+}
+
 function renderBlocks(blocks: Block[], doc: ExportDocument): (Paragraph | Table)[] {
   const base = { font: doc.formatting.font, size: halfPoints(doc.formatting.fontSizePt) };
   const spacing = { line: lineSpacing(doc.formatting.lineSpacing), after: 120 };
@@ -109,6 +119,10 @@ function renderBlocks(blocks: Block[], doc: ExportDocument): (Paragraph | Table)
         break;
 
       case "table":
+        // Above the table, which is where a table caption belongs — figures
+        // are captioned below. The text is the same one the List of Tables
+        // carries, assigned in a single numbering pass.
+        if (block.label) out.push(caption(block.label, base));
         out.push(
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -174,6 +188,8 @@ function renderBlocks(blocks: Block[], doc: ExportDocument): (Paragraph | Table)
             ],
           }),
         );
+        // Below the figure, unlike a table's.
+        if (block.label) out.push(caption(block.label, base));
         break;
     }
   }
@@ -283,7 +299,29 @@ export async function renderDocx(doc: ExportDocument): Promise<RenderResult> {
 
   titlePage.push(new Paragraph({ children: [new PageBreak()] }));
 
+  /*
+   * One front-matter page, heading and all, ending in a page break.
+   *
+   * Each of these is its own page by convention — a Dedication sharing a sheet
+   * with the Acknowledgements is not what a department expects to receive.
+   */
+  const frontMatterPage = (page: FrontMatterPage): (Paragraph | Table)[] => [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 240 },
+      children: [
+        new TextRun({ text: page.heading, font: base.font, size: base.size, bold: true }),
+      ],
+    }),
+    ...renderBlocks(page.blocks, doc),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
+
   const body: (Paragraph | Table)[] = [
+    // Declaration, Certification, Dedication, Acknowledgements, Abstract —
+    // whichever of them the student has filled in.
+    ...doc.frontMatter.flatMap(frontMatterPage),
+
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 240 },
@@ -293,6 +331,9 @@ export async function renderDocx(doc: ExportDocument): Promise<RenderResult> {
     }),
     new TableOfContents("Contents", { hyperlink: true, headingStyleRange: "1-3" }),
     new Paragraph({ children: [new PageBreak()] }),
+
+    // The lists of tables and figures sit after the contents, never before it.
+    ...doc.contentsLists.flatMap(frontMatterPage),
   ];
 
   for (const chapter of doc.chapters) {

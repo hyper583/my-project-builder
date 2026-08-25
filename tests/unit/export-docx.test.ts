@@ -27,6 +27,10 @@ function baseDocument(overrides: Partial<ExportDocument> = {}): ExportDocument {
     programme: "B.Sc. Computer Science",
     degree: "Bachelor of Science",
     dateLabel: "August 2026",
+    // A project with nothing filled in yet: the front pages are omitted
+    // rather than printed empty. Tests that need them override these.
+    frontMatter: [],
+    contentsLists: [],
     chapters: [
       {
         number: "1",
@@ -167,5 +171,86 @@ describe("renderDocx", () => {
       baseDocument({ chapters: [], references: [], topic: null, institution: null }),
     );
     expect(result.bytes.byteLength).toBeGreaterThan(0);
+  });
+});
+
+describe("front matter", () => {
+  /*
+   * The pages a project must open with. The export produced none of them, so a
+   * student who paid for consistent formatting still built Certification,
+   * Declaration and the Abstract by hand in Word — which is where the
+   * formatting stops matching the rest of the document.
+   */
+  const withFrontMatter = () =>
+    baseDocument({
+      frontMatter: [
+        { heading: "DECLARATION", blocks: [{ kind: "paragraph", runs: [{ kind: "text", text: "I, ADA OKEKE, declare" }] }] },
+        { heading: "ABSTRACT", blocks: [{ kind: "paragraph", runs: [{ kind: "text", text: "This study examines" }] }] },
+      ],
+      contentsLists: [
+        { heading: "LIST OF TABLES", blocks: [{ kind: "paragraph", runs: [{ kind: "text", text: "Table 4.1: Response Rate" }] }] },
+      ],
+    });
+
+  it("writes every page into the document", async () => {
+    const body = readDocxParts((await renderDocx(withFrontMatter())).bytes)["word/document.xml"]!;
+
+    expect(body).toContain("DECLARATION");
+    expect(body).toContain("I, ADA OKEKE, declare");
+    expect(body).toContain("ABSTRACT");
+    expect(body).toContain("LIST OF TABLES");
+    expect(body).toContain("Table 4.1: Response Rate");
+  });
+
+  it("puts the front pages before the contents and the lists after it", async () => {
+    // Order is the whole convention. A List of Tables ahead of the Table of
+    // Contents is wrong in a way a supervisor notices immediately.
+    const body = readDocxParts((await renderDocx(withFrontMatter())).bytes)["word/document.xml"]!;
+
+    expect(body.indexOf("DECLARATION")).toBeLessThan(body.indexOf("TABLE OF CONTENTS"));
+    expect(body.indexOf("ABSTRACT")).toBeLessThan(body.indexOf("TABLE OF CONTENTS"));
+    expect(body.indexOf("TABLE OF CONTENTS")).toBeLessThan(body.indexOf("LIST OF TABLES"));
+  });
+
+  it("still marks a demo export with front matter present", async () => {
+    /*
+     * `assertDisclaimer` gates on what the renderer reports drawing, and the
+     * front pages are inserted ahead of everything. A page added before the
+     * title block is exactly how that marking could be lost.
+     */
+    const result = await renderDocx({ ...withFrontMatter(), disclaimer: DEMO_DISCLAIMER });
+
+    expect(result.disclaimerRendered).toBe(true);
+    const body = readDocxParts(result.bytes)["word/document.xml"]!;
+    expect(body).toContain(DEMO_DISCLAIMER.titleBlock);
+  });
+
+  it("captions a table with the label the list carries", async () => {
+    const doc = baseDocument({
+      chapters: [
+        {
+          number: "4",
+          title: "Findings",
+          blocks: [],
+          sections: [
+            {
+              number: "4.1",
+              title: "Response Rate",
+              blocks: [
+                {
+                  kind: "table",
+                  label: "Table 4.1: Response Rate",
+                  rows: [{ header: true, cells: [[{ kind: "text", text: "Level" }]] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const body = readDocxParts((await renderDocx(doc)).bytes)["word/document.xml"]!;
+
+    expect(body).toContain("Table 4.1: Response Rate");
   });
 });

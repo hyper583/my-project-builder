@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ExportPanel } from "@/components/export/export-panel";
+import { FrontMatterPanel } from "@/components/export/front-matter-panel";
 import { ProjectPageHeader } from "@/components/projects/project-page-header";
 import { requireProject } from "@/server/dal/projects";
 import { prisma } from "@/server/db";
+import { aiConfigured } from "@/server/services/ai";
 import { resolveExportPolicy } from "@/server/services/export/policy";
 
 export const metadata: Metadata = { title: "Export" };
@@ -68,6 +70,22 @@ export default async function ProjectExportPage({ params }: PageProps<"/projects
     where: { resolved: false, section: { projectId: id } },
   });
 
+  const [institution, frontMatter] = await Promise.all([
+    prisma.projectInstitution.findUnique({
+      where: { projectId: id },
+      select: {
+        matricNumber: true,
+        supervisorName: true,
+        supervisorTitle: true,
+        headOfDepartment: true,
+      },
+    }),
+    prisma.projectFrontMatter.findUnique({
+      where: { projectId: id },
+      select: { dedication: true, acknowledgements: true, abstract: true, keywords: true },
+    }),
+  ]);
+
   return (
     <div className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-10">
       <ProjectPageHeader projectId={id} projectTitle={project.title} section="Export">
@@ -85,6 +103,30 @@ export default async function ProjectExportPage({ params }: PageProps<"/projects
           placeholderCount={placeholderCount}
         />
       </div>
+
+      {/*
+        Offered only where the document is the student's own to hand in. The
+        sample is a fixture with a fixed title page, and giving it a dedication
+        would be furnishing something nobody submits.
+      */}
+      {project.kind === "REAL" ? (
+        <div className="mt-6">
+          <FrontMatterPanel
+            projectId={id}
+            aiConfigured={aiConfigured}
+            initial={{
+              matricNumber: institution?.matricNumber ?? "",
+              supervisorName: institution?.supervisorName ?? "",
+              supervisorTitle: institution?.supervisorTitle ?? "",
+              headOfDepartment: institution?.headOfDepartment ?? "",
+              dedication: frontMatter?.dedication ?? "",
+              acknowledgements: frontMatter?.acknowledgements ?? "",
+              abstract: frontMatter?.abstract ?? "",
+              keywords: frontMatter?.keywords ?? "",
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

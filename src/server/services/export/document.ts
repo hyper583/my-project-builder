@@ -20,10 +20,31 @@ export type Block =
   | { kind: "paragraph"; runs: Inline[] }
   | { kind: "heading"; level: 2 | 3; runs: Inline[] }
   | { kind: "list"; ordered: boolean; items: Inline[][] }
-  | { kind: "table"; rows: Array<{ header: boolean; cells: Inline[][] }> }
+  /**
+   * `label` is assigned during assembly — "Table 4.1" and its caption — and is
+   * what the List of Tables is built from. One numbering pass produces both, so
+   * a caption in the body and its entry in the list cannot disagree.
+   */
+  | { kind: "table"; rows: Array<{ header: boolean; cells: Inline[][] }>; label?: string }
   /** A tracked `[STUDENT DATA REQUIRED: …]` marker, kept visible in the output. */
   | { kind: "placeholder"; label: string }
-  | { kind: "image"; alt: string };
+  | { kind: "image"; alt: string; label?: string };
+
+/**
+ * One of the pages a project opens with.
+ *
+ * Certification, Declaration, Dedication, Acknowledgements, Abstract — and the
+ * lists of tables and figures. Each is its own page with a centred heading,
+ * which is the convention every Nigerian department expects.
+ *
+ * Blocks rather than a string, so these reuse everything the renderers already
+ * know how to draw and a signature line is not a special case.
+ */
+export interface FrontMatterPage {
+  /** Printed centred and in capitals at the top of its own page. */
+  readonly heading: string;
+  readonly blocks: Block[];
+}
 
 export interface ExportSection {
   number: string | null;
@@ -88,6 +109,17 @@ export interface ExportDocument {
   degree: string | null;
   /** Rendered as written; never reformatted into a different calendar. */
   dateLabel: string;
+  /**
+   * Pages between the title page and the table of contents.
+   *
+   * A page with nothing in it is omitted rather than printed empty: a
+   * Dedication heading over blank space reads as a fault, and unlike the demo
+   * disclaimer — which is all-or-nothing by design — front matter is
+   * legitimately partial while a student is still writing it.
+   */
+  frontMatter: FrontMatterPage[];
+  /** Pages after the table of contents: the lists of tables and figures. */
+  contentsLists: FrontMatterPage[];
   chapters: ExportChapter[];
   references: string[];
   formatting: ExportFormatting;

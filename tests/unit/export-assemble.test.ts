@@ -137,6 +137,8 @@ describe("assembleDocument", () => {
   const input: AssembleInput = {
     project: { title: "My Project", topic: "A topic", kind: "DEMO" },
     author: "Ada Okeke",
+    // Nothing written yet, which is the state most projects export in.
+    frontMatter: null,
     institution: {
       institution: "Madonna University",
       faculty: null,

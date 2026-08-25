@@ -189,6 +189,7 @@ model Project {
   issues         ConsistencyIssue[]
   generation     ProjectGenerationSettings?
   pass           ProjectPass?
+  frontMatter    ProjectFrontMatter?
 
   @@index([userId, deletedAt])
   @@index([userId, status])
@@ -213,6 +214,19 @@ model ProjectInstitution {
   institutionId String?
   facultyId     String?
   departmentId  String?
+
+  /// Who the front pages name.
+  ///
+  /// A Certification page carries the student's matriculation number and is
+  /// signed by the supervisor and the head of department; a Declaration
+  /// carries the matriculation number too. None of this could be produced
+  /// before, because none of it was ever asked for — the student typed those
+  /// pages into Word themselves, which is where the formatting they paid for
+  /// stopped matching the rest of the document.
+  matricNumber     String?
+  supervisorName   String?
+  supervisorTitle  String?
+  headOfDepartment String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -312,6 +326,33 @@ model ProjectInstruction {
 
   @@index([projectId])
   @@map("project_instruction")
+}
+
+/// The student's own words on the front pages.
+///
+/// Separate from ProjectInstitution because these are prose rather than
+/// identity, and they are written at a different time: a dedication and
+/// acknowledgements are composed at the end of a project, not during setup.
+/// Burying them in a wizard nobody revisits is how they stay empty.
+///
+/// The abstract is here rather than as a ProjectSection because it is derived
+/// from the finished project rather than written into it — regenerating it
+/// must not disturb the chapter numbering or the section tree.
+model ProjectFrontMatter {
+  id        String  @id @default(cuid())
+  projectId String  @unique
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  dedication       String?
+  acknowledgements String?
+  abstract         String?
+  /// Comma-separated, as departments ask for them. Stored as typed.
+  keywords         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("project_front_matter")
 }
 
 model ProjectFormatting {
