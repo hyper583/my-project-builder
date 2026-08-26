@@ -68,14 +68,19 @@ sudo -u mpb git clone https://github.com/hyper583/my-project-builder.git /srv/my
 
 ```bash
 sudo cp .env.example /etc/my-project-builder.env
-sudo chmod 600 /etc/my-project-builder.env
+sudo chown root:mpb /etc/my-project-builder.env
+sudo chmod 640 /etc/my-project-builder.env
 sudo nano /etc/my-project-builder.env
 ```
 
-Root-owned and `600`, outside the repository, because it holds the Paystack
-secret key — the one value that both authorises API calls and signs webhooks, so
-a leak is not "someone can read your transactions", it is "someone can forge a
-payment".
+Outside the repository, because it holds the Paystack secret key — the one value
+that both authorises API calls and signs webhooks, so a leak is not "someone can
+read your transactions", it is "someone can forge a payment".
+
+`root:mpb` and `640`, not `600`. systemd reads it as root before dropping to
+`User=mpb`, so the services would work either way — but the build in the next
+step runs *as* `mpb` and needs to read it too. At `600` that step fails with
+permission denied. No other user on the machine can read it at `640`.
 
 Values that must be right:
 
@@ -92,10 +97,17 @@ Values that must be right:
 
 ```bash
 cd /srv/my-project-builder
-sudo -u mpb env $(grep -v '^#' /etc/my-project-builder.env | xargs) bash -c '
+sudo -u mpb bash -c '
+  set -a; . /etc/my-project-builder.env; set +a
   npm ci --include=dev && npx prisma generate && npx prisma migrate deploy && npm run build
 '
 ```
+
+`set -a` then sourcing the file, rather than piping it through `xargs`. Values
+here contain spaces and punctuation — `EMAIL_FROM` is documented as
+`My Project Builder <hello@example.com>`, and a database password can hold
+anything — and `xargs` splits on whitespace while the shell reads `<` as a
+redirect. Sourcing respects the quoting the file already has.
 
 `--include=dev` is not optional. `NODE_ENV=production` makes npm omit
 devDependencies, and six of them are needed: `tailwindcss` and
