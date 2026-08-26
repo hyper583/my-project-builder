@@ -1,0 +1,46 @@
+# The Next.js server.
+#
+#   sudo cp deploy/vps/mpb-*.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now mpb-web mpb-worker
+#
+# systemd rather than PM2: it is already on the machine, it starts these on
+# boot without a second registration step, and it adds no dependency to an
+# application that handles payments.
+
+[Unit]
+Description=My Project Builder — web
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mpb
+WorkingDirectory=/srv/my-project-builder
+
+# Secrets live in a root-owned file, never in this unit — unit files are
+# world-readable and end up in version control.
+EnvironmentFile=/etc/my-project-builder.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+ExecStart=/usr/bin/npm run start
+
+# A crash must not take the site down until someone notices. `always` rather
+# than `on-failure`: a clean exit here is still an outage.
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mpb-web
+
+# The app writes nothing outside its own directory when STORAGE_DRIVER is
+# supabase. These make that a rule rather than a habit.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
