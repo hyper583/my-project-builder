@@ -2,6 +2,9 @@
   "name": "my-project-builder",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9 <25"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",

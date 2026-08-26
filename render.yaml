@@ -13,15 +13,36 @@
 #
 # Nothing here is secret. Every value marked `sync: false` must be set in the
 # Render dashboard, on BOTH services — they share a database and an API key.
+#
+# The host also has to be modern enough to build Next.js. A deploy to shared
+# hosting failed with `GLIBC_2.29 not found` from @next/swc-linux-x64-gnu:
+# Next's native compiler needs glibc 2.29, which is Ubuntu 19.04 era, and older
+# CentOS-derived hosts are far behind that. Node itself is pinned in
+# `.node-version`; the OS underneath it is why a managed platform is worth the
+# money here.
 
 services:
   - type: web
     name: my-project-builder
     runtime: node
     plan: starter
-    # `prisma generate` before the build, not in postinstall: a cached install
-    # skips postinstall and the build then fails on a missing client.
-    buildCommand: npm ci && npx prisma generate && npm run build
+    # `--include=dev` is not optional. Render sets NODE_ENV=production, npm
+    # reads that as `omit=dev`, and the build then runs without the tools it is
+    # made of. Reproduced against this lockfile: `tailwindcss` and
+    # `@tailwindcss/postcss` disappear, so the stylesheet cannot compile.
+    #
+    # It is worth knowing this is partial. `typescript` and `prisma` survive as
+    # transitive dependencies of production packages, so the failure is not the
+    # clean "nothing dev is here" you might assume — it is a handful of specific
+    # absences, which is harder to recognise from the error.
+    #
+    # `prisma generate` runs before the build, not in postinstall: a cached
+    # install skips postinstall and the build then fails on a missing client.
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
+    # Migrations run between the build and the server starting, so a deploy
+    # whose schema has moved never serves traffic against the old one. Nothing
+    # ran them before this line existed.
+    preDeployCommand: npx prisma migrate deploy
     startCommand: npm run start
     healthCheckPath: /
     envVars:
@@ -71,7 +92,17 @@ services:
     name: my-project-builder-worker
     runtime: node
     plan: starter
-    buildCommand: npm ci && npx prisma generate
+    # Same `--include=dev`, and here it matters at RUNTIME rather than only at
+    # build time. `tsx` is a devDependency, it is what `npm run worker` starts,
+    # and it is one of the six that a production install genuinely drops —
+    # nothing in `dependencies` pulls it in. Built without it this service
+    # compiles happily and then fails on every boot, so the queue is never
+    # claimed from, and a project stuck at "Generating" reports no error
+    # because nothing errored.
+    #
+    # No migrations here. The web service runs them; two services racing the
+    # same migration is how a deploy deadlocks.
+    buildCommand: npm ci --include=dev && npx prisma generate
     startCommand: npm run worker
     envVars:
       - key: NODE_ENV
