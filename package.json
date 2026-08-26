@@ -21,6 +21,7 @@
     "verify": "npm run lint && npm run typecheck && npm run audit:controls && npm test && npm run build",
     "worker": "tsx --tsconfig tsconfig.worker.json worker/index.ts",
     "db:unstick": "node scripts/unstick-test-db.mjs",
+    "email:test": "tsx scripts/send-test-email.mjs",
     "audit:controls": "node scripts/audit-controls.mjs"
   },
   "dependencies": {
