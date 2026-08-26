@@ -1,0 +1,43 @@
+# The generation worker.
+#
+# The reason a VPS is needed at all. Without this running, jobs are queued and
+# never claimed: every project sits at "Generating" forever and nothing reports
+# an error, because nothing failed — it simply is not running. Shared hosting
+# cannot keep a process like this alive, which is what ended that attempt.
+#
+# Check it is alive after any deploy:
+#   systemctl status mpb-worker
+#   journalctl -u mpb-worker -f
+
+[Unit]
+Description=My Project Builder — generation worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mpb
+WorkingDirectory=/srv/my-project-builder
+
+# The same environment as the web service. They share a database, an API key
+# and a storage bucket; pointing them at different ones produces exports the
+# download route cannot find.
+EnvironmentFile=/etc/my-project-builder.env
+Environment=NODE_ENV=production
+
+ExecStart=/usr/bin/npm run worker
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mpb-worker
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
